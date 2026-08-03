@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Conversation } from "../../api/crmApi";
 import { useAuthStore } from "../../store/useAuthStore";
-import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, Filter, Volume2, VolumeX, Bell } from "lucide-react";
+import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, PhoneCall, Filter, Volume2, VolumeX, Bell } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { formatPhoneNumber } from "../../utils/formatters";
 import { playIncomingNotificationSound } from "../../utils/sound";
@@ -342,15 +342,45 @@ export const InboxPage: React.FC = () => {
                     key={msg.id}
                     className={`flex flex-col ${isOutbound ? "items-end" : "items-start"}`}
                   >
-                    <div
-                      className={`max-w-lg px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${
-                        isOutbound
-                          ? "bg-teal-600 text-white rounded-br-none shadow-lg shadow-teal-600/10"
-                          : "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 rounded-bl-none shadow-sm"
-                      }`}
-                    >
-                      <p>{msg.content}</p>
-                    </div>
+                    {msg.content.includes("Panggilan") || msg.content.includes("Call") ? (
+                      <div className="max-w-md p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-500/10 border-2 border-amber-500/30 text-slate-800 dark:text-zinc-200 shadow-md">
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className="h-8 w-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                            <PhoneCall className="h-4 w-4 animate-pulse" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-amber-700 dark:text-amber-300">Panggilan WhatsApp Masuk</h4>
+                            <p className="text-[11px] text-slate-600 dark:text-zinc-400 font-medium">{msg.content}</p>
+                          </div>
+                        </div>
+
+                        {/* Call Action Options */}
+                        <div className="pt-2 border-t border-amber-500/20 flex items-center gap-2">
+                          <a
+                            href={`https://wa.me/${activeConv?.lead?.phone_number?.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                          >
+                            <Phone className="h-3 w-3" />
+                            <span>Telepon Balik di WA</span>
+                          </a>
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 italic">
+                            *Panggilan via Web WhatsApp dapat direspon via HP/Aplikasi WA
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className={`max-w-lg px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${
+                          isOutbound
+                            ? "bg-teal-600 text-white rounded-br-none shadow-lg shadow-teal-600/10"
+                            : "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 rounded-bl-none shadow-sm"
+                        }`}
+                      >
+                        <p>{msg.content}</p>
+                      </div>
+                    )}
                     <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-1 px-1">
                       {new Date(msg.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
