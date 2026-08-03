@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi } from "../../api/crmApi";
 import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
+import { formatPhoneNumber } from "../../utils/formatters";
 
 export const InboxPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -135,7 +136,7 @@ export const InboxPage: React.FC = () => {
                           {new Date(conv.last_message_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{conv.lead?.phone_number}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{formatPhoneNumber(conv.lead?.phone_number)}</p>
                       <div className="flex items-center gap-1.5 mt-2">
                         <Badge variant="teal" className="text-[9px] py-0 px-1.5 font-bold">
                           {conv.lead?.branch?.name || "DGT Pusat"}
@@ -181,7 +182,7 @@ export const InboxPage: React.FC = () => {
                   </Badge>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2 mt-0.5 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                  <span>{activeConv.lead?.phone_number}</span>
+                  <span>{formatPhoneNumber(activeConv.lead?.phone_number)}</span>
                   <span>•</span>
                   <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-semibold truncate">
                     <MapPin className="h-3 w-3 shrink-0 text-teal-500" />

@@ -4,6 +4,7 @@ import { crmApi } from "../../api/crmApi";
 import { Users, Phone, MapPin, UserPlus, GripVertical, MessageSquare } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
+import { formatPhoneNumber } from "../../utils/formatters";
 
 const PIPELINE_STAGES = [
   { key: "NEW", label: "New Lead", color: "border-teal-500", badgeColor: "bg-teal-500/10 text-teal-600 dark:text-teal-400" },
@@ -149,7 +150,7 @@ export const Leads: React.FC = () => {
                       <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
                         <p className="font-mono flex items-center gap-2">
                           <Phone className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                          <span>{lead.phone_number}</span>
+                          <span>{formatPhoneNumber(lead.phone_number)}</span>
                         </p>
 
                         <p className="flex items-center gap-2 font-medium">
