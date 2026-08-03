@@ -191,30 +191,30 @@ export const InboxPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Precision Aligned Action Buttons & Status Badge */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            {/* Compact Efficient Action Buttons & Status Badge */}
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setShowHandoverModal(true)}
-                className="h-9 px-3.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
+                className="h-8.5 px-3 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
                 title="Pindah Cabang & Catatan Handover"
               >
                 <ArrowRightLeft className="h-3.5 w-3.5 shrink-0 text-teal-500" />
-                <span>Handover Cabang</span>
+                <span>Handover</span>
               </button>
 
               <button
                 onClick={() => handleDeleteChat(activeConv.id, activeConv.lead?.customer_name || "Customer")}
                 disabled={deleteMutation.isPending}
-                className="h-9 px-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
+                className="h-8.5 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
                 title="Hapus Percakapan & Reset Data Lead untuk Testing Ulang"
               >
                 <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                <span>Hapus Chat (Testing)</span>
+                <span>Hapus Chat</span>
               </button>
 
-              <div className="h-9 px-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm">
+              <div className="h-8.5 px-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                <span>WABA Connected</span>
+                <span>Online</span>
               </div>
             </div>
           </div>
