@@ -23,6 +23,7 @@ export const Leads: React.FC = () => {
   const { data: leads = [] } = useQuery({
     queryKey: ["leads"],
     queryFn: () => crmApi.getLeads(),
+    refetchInterval: 1000,
   });
 
   const createMutation = useMutation({
@@ -84,20 +85,27 @@ export const Leads: React.FC = () => {
                       key={lead.id}
                       className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-2 hover:border-teal-500/50 transition-all shadow-sm dark:shadow-none"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-extrabold text-slate-900 dark:text-zinc-100 truncate">{lead.customer_name}</span>
-                        <Badge variant="teal" className="text-[9px] py-0 px-1.5">{lead.branch?.code || "PUSAT"}</Badge>
+                        <Badge variant="teal" className="text-[9px] py-0 px-1.5 font-bold shrink-0">{lead.branch?.name || lead.branch?.code || "DGT Pusat"}</Badge>
                       </div>
 
                       <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono flex items-center gap-1">
-                        <Phone className="h-3 w-3 text-teal-600 dark:text-teal-400" />
+                        <Phone className="h-3 w-3 text-teal-600 dark:text-teal-400 shrink-0" />
                         {lead.phone_number}
                       </p>
 
-                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-indigo-500 dark:text-indigo-400" />
-                        {lead.domicile || "Jakarta"}
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1 font-medium">
+                        <MapPin className="h-3 w-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                        <span className="truncate">{lead.branch?.name || lead.domicile || "DGT Pusat"}</span>
                       </p>
+
+                      {lead.handover_note && (
+                        <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[10px] text-amber-700 dark:text-amber-300 leading-tight">
+                          <span className="font-bold">Catatan Handover: </span>
+                          {lead.handover_note}
+                        </div>
+                      )}
 
                       <div className="pt-2 border-t border-slate-100 dark:border-zinc-800/60 flex justify-between items-center text-[10px]">
                         <span className="text-slate-400 dark:text-zinc-500">{lead.source}</span>
