@@ -64,6 +64,11 @@ export interface TourPackage {
   base_price: number;
   itinerary_json: string;
   terms_conditions: string;
+  pdf_url: string;
+  wa_template: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Invoice {
@@ -195,6 +200,34 @@ export const crmApi = {
   getPackages: async () => {
     const res = await apiClient.get("packages").json<{ data: TourPackage[] }>();
     return res.data;
+  },
+
+  createPackage: async (data: { title: string; destination: string; duration_days: number; base_price: number; itinerary_json?: string; terms_conditions?: string; pdf_url?: string; wa_template?: string }) => {
+    const res = await apiClient.post("packages", { json: data }).json<{ data: TourPackage }>();
+    return res.data;
+  },
+
+  updatePackage: async (id: string, data: { title: string; destination: string; duration_days: number; base_price: number; itinerary_json?: string; terms_conditions?: string; pdf_url?: string; wa_template?: string; is_active?: boolean }) => {
+    const res = await apiClient.put(`packages/${id}`, { json: data }).json<{ data: TourPackage }>();
+    return res.data;
+  },
+
+  deletePackage: async (id: string) => {
+    const res = await apiClient.delete(`packages/${id}`).json<{ message: string }>();
+    return res;
+  },
+
+  uploadFile: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("crm_token");
+    const res = await fetch("http://localhost:8000/v1/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const json = await res.json();
+    return json.data as { url: string; file_name: string };
   },
 
   createQuotation: async (data: { lead_id: string; package_id: string; pax_count: number; price_per_pax: number; custom_price_reason?: string }) => {
