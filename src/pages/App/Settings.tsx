@@ -43,6 +43,7 @@ export const SettingsPage: React.FC = () => {
         name: b.name,
         code: b.code,
         wa_phone_number: b.wa_phone_number,
+        voip_phone_number: b.voip_phone_number || "",
         coverage_areas: b.coverage_areas,
         is_active: b.is_active ?? true,
       }),

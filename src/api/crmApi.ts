@@ -149,12 +149,12 @@ export const crmApi = {
     return res.data;
   },
 
-  updateBranch: async (id: string, data: { name: string; code: string; wa_phone_number: string; coverage_areas: string; is_active: boolean }) => {
+  updateBranch: async (id: string, data: { name: string; code: string; wa_phone_number: string; voip_phone_number?: string; coverage_areas: string; is_active: boolean }) => {
     const res = await apiClient.put(`branches/${id}`, { json: data }).json<{ data: Branch }>();
     return res.data;
   },
 
-  createBranch: async (data: { name: string; code: string; wa_phone_number: string; coverage_areas: string }) => {
+  createBranch: async (data: { name: string; code: string; wa_phone_number: string; voip_phone_number?: string; coverage_areas: string }) => {
     const res = await apiClient.post("branches", { json: data }).json<{ data: Branch }>();
     return res.data;
   },
