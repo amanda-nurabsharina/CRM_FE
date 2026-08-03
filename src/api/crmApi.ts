@@ -161,6 +161,11 @@ export const crmApi = {
     return res.data;
   },
 
+  deleteConversation: async (convId: string) => {
+    const res = await apiClient.delete(`conversations/${convId}`).json<{ message: string }>();
+    return res;
+  },
+
   getPackages: async () => {
     const res = await apiClient.get("packages").json<{ data: TourPackage[] }>();
     return res.data;

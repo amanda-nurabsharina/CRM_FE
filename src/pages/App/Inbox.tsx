@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi } from "../../api/crmApi";
-import { MessageSquare, Send, MapPin } from "lucide-react";
+import { MessageSquare, Send, MapPin, Trash2 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 
 export const InboxPage: React.FC = () => {
@@ -33,63 +33,96 @@ export const InboxPage: React.FC = () => {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (convId: string) => crmApi.deleteConversation(convId),
+    onSuccess: () => {
+      setSelectedConvId(null);
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+  });
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim() || !activeConv) return;
     sendMutation.mutate({ convId: activeConv.id, text: messageText });
   };
 
+  const handleDeleteChat = (convId: string, name: string) => {
+    if (confirm(`Hapus percakapan WA "${name}" & reset data lead untuk pengujian ulang dari awal?`)) {
+      deleteMutation.mutate(convId);
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors">
       {/* Left List of Conversations */}
       <div className="w-80 border-r border-slate-200 dark:border-zinc-800/80 flex flex-col bg-white dark:bg-zinc-900/30">
-        <div className="p-4 border-b border-slate-200 dark:border-zinc-800/80">
-          <h2 className="text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
-            <MessageSquare className="h-5 w-5 text-teal-500 dark:text-teal-400" />
-            <span>WhatsApp Inbox</span>
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">Multi-branch customer chats</p>
+        <div className="p-4 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
+              <MessageSquare className="h-5 w-5 text-teal-500 dark:text-teal-400" />
+              <span>WhatsApp Inbox</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Multi-branch customer chats</p>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800/50">
           {convs.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-400 dark:text-zinc-500">
-              Belum ada percakapan masuk. Gunakan webhook simulator untuk tes chat.
+              Belum ada percakapan masuk. Kirim pesan WA ke HP terhubung untuk tes chat.
             </div>
           ) : (
             convs.map((conv) => {
               const isSelected = activeConv?.id === conv.id;
+              const customerName = conv.lead?.customer_name || "Pelanggan Baru";
               return (
-                <button
+                <div
                   key={conv.id}
-                  onClick={() => setSelectedConvId(conv.id)}
-                  className={`w-full p-4 text-left transition-colors flex items-start gap-3 ${
+                  className={`w-full p-4 text-left transition-colors flex items-start justify-between gap-2 group ${
                     isSelected
                       ? "bg-teal-500/10 dark:bg-teal-500/10 border-l-4 border-teal-500 dark:border-teal-400"
                       : "hover:bg-slate-100 dark:hover:bg-zinc-900/60"
                   }`}
                 >
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-teal-600 to-indigo-600 flex items-center justify-center font-bold text-white shrink-0">
-                    {conv.lead?.customer_name ? conv.lead.customer_name.slice(0, 2).toUpperCase() : "WA"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold truncate text-slate-900 dark:text-zinc-100">{conv.lead?.customer_name || "Pelanggan Baru"}</p>
-                      <span className="text-[10px] text-slate-400 dark:text-zinc-500">
-                        {new Date(conv.last_message_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
+                  <button
+                    onClick={() => setSelectedConvId(conv.id)}
+                    className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-teal-600 to-indigo-600 flex items-center justify-center font-bold text-white shrink-0">
+                      {customerName.slice(0, 2).toUpperCase()}
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{conv.lead?.phone_number}</p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <Badge variant="teal" className="text-[9px] py-0 px-1.5">
-                        {conv.lead?.branch?.name || "DGT Pusat"}
-                      </Badge>
-                      <Badge variant="indigo" className="text-[9px] py-0 px-1.5">
-                        {conv.lead?.status || "NEW"}
-                      </Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold truncate text-slate-900 dark:text-zinc-100">{customerName}</p>
+                        <span className="text-[10px] text-slate-400 dark:text-zinc-500">
+                          {new Date(conv.last_message_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{conv.lead?.phone_number}</p>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <Badge variant="teal" className="text-[9px] py-0 px-1.5">
+                          {conv.lead?.branch?.name || "DGT Pusat"}
+                        </Badge>
+                        <Badge variant="indigo" className="text-[9px] py-0 px-1.5">
+                          {conv.lead?.status || "NEW"}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteChat(conv.id, customerName);
+                    }}
+                    title="Hapus Chat Testing"
+                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               );
             })
           )}
@@ -110,7 +143,7 @@ export const InboxPage: React.FC = () => {
                 <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2">
                   <span>{activeConv.lead?.phone_number}</span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400">
+                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-medium">
                     <MapPin className="h-3 w-3" />
                     {activeConv.lead?.domicile || "Domisili Belum Set"}
                   </span>
@@ -118,7 +151,17 @@ export const InboxPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleDeleteChat(activeConv.id, activeConv.lead?.customer_name || "Customer")}
+                disabled={deleteMutation.isPending}
+                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                title="Hapus Percakapan & Reset Data Lead untuk Testing Ulang"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Hapus Chat (Testing)</span>
+              </button>
+
               <Badge variant="emerald" className="text-xs py-1 px-3">
                 WABA Official Connected
               </Badge>
@@ -179,7 +222,7 @@ export const InboxPage: React.FC = () => {
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-zinc-500 text-xs">
-          Pilih percakapan di sebelah kiri untuk memulai percakapan.
+          Pilih percakapan di sebelah kiri untuk memulai percakapan atau kirim pesan WA baru.
         </div>
       )}
 
