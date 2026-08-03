@@ -139,6 +139,11 @@ export const crmApi = {
     return res.data;
   },
 
+  handoverLead: async (leadId: string, branchId: string, note: string) => {
+    const res = await apiClient.post(`leads/${leadId}/handover`, { json: { branch_id: branchId, note } }).json<{ data: Lead }>();
+    return res.data;
+  },
+
   updateLeadStatus: async (leadId: string, status: string) => {
     const res = await apiClient.patch(`leads/${leadId}/status`, { json: { status } }).json<{ data: Lead }>();
     return res.data;

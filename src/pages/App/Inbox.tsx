@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi } from "../../api/crmApi";
-import { MessageSquare, Send, MapPin, Trash2 } from "lucide-react";
+import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, Building2 } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 
 export const InboxPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
+  const [targetBranchId, setTargetBranchId] = useState("");
+  const [handoverNote, setHandoverNote] = useState("");
 
   const { data: convs = [] } = useQuery({
     queryKey: ["conversations"],
@@ -15,7 +17,19 @@ export const InboxPage: React.FC = () => {
     refetchInterval: 1000,
   });
 
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => crmApi.getBranches(),
+  });
+
   const activeConv = convs.find((c) => c.id === selectedConvId) || convs[0];
+
+  useEffect(() => {
+    if (activeConv?.lead) {
+      setTargetBranchId(activeConv.lead.branch_id || (branches[0]?.id || ""));
+      setHandoverNote(activeConv.lead.handover_note || "");
+    }
+  }, [activeConv?.id, activeConv?.lead?.branch_id]);
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", activeConv?.id],
@@ -42,6 +56,16 @@ export const InboxPage: React.FC = () => {
     },
   });
 
+  const handoverMutation = useMutation({
+    mutationFn: ({ leadId, branchId, note }: { leadId: string; branchId: string; note: string }) =>
+      crmApi.handoverLead(leadId, branchId, note),
+    onSuccess: () => {
+      alert("Handover cabang & catatan serah terima berhasil disimpan!");
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+  });
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim() || !activeConv) return;
@@ -52,6 +76,15 @@ export const InboxPage: React.FC = () => {
     if (confirm(`Hapus percakapan WA "${name}" & reset data lead untuk pengujian ulang dari awal?`)) {
       deleteMutation.mutate(convId);
     }
+  };
+
+  const handleSaveHandover = () => {
+    if (!activeConv?.lead) return;
+    handoverMutation.mutate({
+      leadId: activeConv.lead.id,
+      branchId: targetBranchId,
+      note: handoverNote,
+    });
   };
 
   return (
@@ -226,9 +259,9 @@ export const InboxPage: React.FC = () => {
         </div>
       )}
 
-      {/* Right Lead Context Panel */}
+      {/* Right Lead Context & Interactive Handover Panel */}
       {activeConv?.lead && (
-        <div className="w-72 border-l border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-900/40 p-4 space-y-6 overflow-y-auto">
+        <div className="w-80 border-l border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-900/40 p-5 space-y-6 overflow-y-auto">
           <div>
             <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Informasi Customer</h4>
             <div className="space-y-2 text-xs">
@@ -241,8 +274,8 @@ export const InboxPage: React.FC = () => {
                 <span className="font-semibold text-slate-800 dark:text-zinc-200">{activeConv.lead.phone_number}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800/60">
-                <span className="text-slate-500 dark:text-zinc-500">Cabang</span>
-                <span className="font-semibold text-teal-600 dark:text-teal-400">{activeConv.lead.branch?.name || "DGT Pusat"}</span>
+                <span className="text-slate-500 dark:text-zinc-500">Cabang Saat Ini</span>
+                <span className="font-bold text-teal-600 dark:text-teal-400">{activeConv.lead.branch?.name || "DGT Pusat"}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800/60">
                 <span className="text-slate-500 dark:text-zinc-500">Status Pipeline</span>
@@ -253,13 +286,52 @@ export const InboxPage: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Internal Handover Note</h4>
-            <textarea
-              defaultValue={activeConv.lead.handover_note || ""}
-              placeholder="Catatan serah terima antar admin cabang..."
-              className="w-full h-24 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-slate-800 dark:text-zinc-300 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-teal-500"
-            />
+          {/* Interactive Handover / Transfer Branch Section */}
+          <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-4 shadow-sm">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-slate-900 dark:text-zinc-100 border-b border-slate-100 dark:border-zinc-800 pb-2">
+              <ArrowRightLeft className="h-4 w-4 text-teal-500" />
+              <span>Pindah Cabang & Catatan Handover</span>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 mb-1">
+                  Pindah Cabang (Transfer Lead):
+                </label>
+                <select
+                  value={targetBranchId}
+                  onChange={(e) => setTargetBranchId(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500"
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 mb-1">
+                  Catatan Serah Terima (Handover Note):
+                </label>
+                <textarea
+                  value={handoverNote}
+                  onChange={(e) => setHandoverNote(e.target.value)}
+                  placeholder="Ketik catatan serah terima antar admin cabang (misal: Pelanggan minta berangkat via Medan bulan depan)..."
+                  className="w-full h-24 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-slate-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-teal-500 leading-relaxed"
+                />
+              </div>
+
+              <button
+                onClick={handleSaveHandover}
+                disabled={handoverMutation.isPending || !targetBranchId}
+                className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+              >
+                <Check className="h-4 w-4" />
+                <span>Simpan Handover & Pindah Cabang</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
