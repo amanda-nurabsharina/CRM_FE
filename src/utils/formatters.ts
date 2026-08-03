@@ -8,16 +8,18 @@ export function formatPhoneNumber(phone?: string): string {
     clean = "628" + clean.slice(2);
   }
 
+  // Standard Indonesian mobile numbers (+62 812-3456-7890)
   if (clean.startsWith("628") && clean.length >= 10 && clean.length <= 14) {
     return `+62 ${clean.slice(2, 5)}-${clean.slice(5, 9)}-${clean.slice(9)}`;
   }
 
-  if (clean.startsWith("62") && clean.length >= 10) {
+  if (clean.startsWith("62") && clean.length >= 10 && clean.length <= 13) {
     return `+62 ${clean.slice(2, 5)}-${clean.slice(5, 9)}${clean.length > 9 ? "-" + clean.slice(9) : ""}`;
   }
 
-  if (clean.length >= 8 && clean.length <= 15) {
-    return `+${clean.slice(0, 3)} ${clean.slice(3, 7)}-${clean.slice(7)}`;
+  // Internal WhatsApp LID / Call Session ID (e.g. 178035017912503 or 208636693491797)
+  if (clean.length >= 14 || (!clean.startsWith("62") && !clean.startsWith("08") && clean.length > 11)) {
+    return `Sesi WA #${clean.slice(-6)}`;
   }
 
   return `+${clean}`;
