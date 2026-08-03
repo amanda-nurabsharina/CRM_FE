@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Branch } from "../../api/crmApi";
-import { Settings as SettingsIcon, Phone, MapPin, Building2, Check, ShieldCheck, HelpCircle } from "lucide-react";
+import { Settings as SettingsIcon, Phone, MapPin, Building2, Check, ShieldCheck, HelpCircle, Plus, Sparkles, AlertCircle } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 
 export const SettingsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newBranch, setNewBranch] = useState({ name: "", code: "", wa_phone_number: "", coverage_areas: "" });
   const [waScheme, setWaScheme] = useState<"MULTI_NUMBER" | "SINGLE_NUMBER">("MULTI_NUMBER");
 
   const { data: branches = [] } = useQuery({
@@ -43,28 +45,124 @@ export const SettingsPage: React.FC = () => {
     },
   });
 
+  const createMutation = useMutation({
+    mutationFn: (b: typeof newBranch) => crmApi.createBranch(b),
+    onSuccess: () => {
+      setShowAddModal(false);
+      setNewBranch({ name: "", code: "", wa_phone_number: "", coverage_areas: "" });
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
+    },
+  });
+
+  const pusatBranch = branches.find((b) => b.code === "PUSAT" || b.name.toLowerCase().includes("pusat"));
+
+  const handleInitPusat = () => {
+    createMutation.mutate({
+      name: "DGT Kantor Pusat",
+      code: "PUSAT",
+      wa_phone_number: "628110001000",
+      coverage_areas: "Pusat, General, Indonesia, All, Default Fallback",
+    });
+  };
+
   return (
     <div className="p-6 space-y-6 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 min-h-screen transition-colors">
       {/* Header */}
-      <div className="border-b border-slate-200 dark:border-zinc-800/80 pb-5">
-        <h1 className="text-xl font-extrabold flex items-center gap-2 tracking-tight text-slate-900 dark:text-white">
-          <SettingsIcon className="h-6 w-6 text-teal-600 dark:text-teal-400" />
-          <span>Pengaturan Nomor WhatsApp & Auto-Routing Cabang</span>
-        </h1>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-          Kelola konfigurasi nomor WhatsApp Business API (WABA) per cabang dan aturan Auto-Routing domisili (FR-01, FR-06).
-        </p>
+      <div className="border-b border-slate-200 dark:border-zinc-800/80 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold flex items-center gap-2 tracking-tight text-slate-900 dark:text-white">
+            <SettingsIcon className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+            <span>Pengaturan DGT Kantor Pusat & Cabang WhatsApp</span>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+            Konfigurasi DGT Kantor Pusat (Default Fallback Routing) dan Nomor WhatsApp WABA per Cabang.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {!pusatBranch && (
+            <button
+              onClick={handleInitPusat}
+              disabled={createMutation.isPending}
+              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-zinc-950 font-bold text-xs rounded-xl flex items-center gap-2 transition-all shadow-md shadow-teal-500/20"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Setup / Inisialisasi DGT Kantor Pusat</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-slate-200 dark:bg-zinc-800 hover:bg-slate-300 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-200 font-bold text-xs rounded-xl flex items-center gap-2 transition-all border border-slate-300 dark:border-zinc-700"
+          >
+            <Plus className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+            <span>Tambah Cabang Baru</span>
+          </button>
+        </div>
+      </div>
+
+      {/* DGT KANTOR PUSAT DEDICATED SETUP CARD */}
+      <div className="p-6 bg-gradient-to-r from-teal-900/40 via-zinc-900 to-zinc-900 border border-teal-500/40 rounded-2xl space-y-4 shadow-xl text-white">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-teal-500/30 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-teal-500/20 border border-teal-500/40 text-teal-300 flex items-center justify-center font-bold">
+              <Building2 className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-extrabold text-white">DGT Kantor Pusat (Headquarters)</h3>
+                <Badge variant="teal" className="text-[10px]">Super Admin Fallback</Badge>
+              </div>
+              <p className="text-xs text-zinc-300 mt-0.5">
+                Pusat kendali utama untuk penanganan pesan WA tanpa lokasi domisili & verifikasi pembayaran dual-check.
+              </p>
+            </div>
+          </div>
+
+          {pusatBranch ? (
+            <button
+              onClick={() => setEditingBranch(pusatBranch)}
+              className="px-4 py-2 bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 font-bold text-xs rounded-xl transition-all"
+            >
+              Edit Pengaturan Pusat
+            </button>
+          ) : (
+            <button
+              onClick={handleInitPusat}
+              className="px-4 py-2 bg-teal-500 text-zinc-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-teal-500/20"
+            >
+              Aktifkan Kantor Pusat
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+            <span className="text-zinc-400 text-[11px]">Kode Cabang Utama:</span>
+            <p className="font-mono font-bold text-teal-300">{pusatBranch?.code || "PUSAT"}</p>
+          </div>
+
+          <div className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+            <span className="text-zinc-400 text-[11px]">Nomor WA Hotline Pusat:</span>
+            <p className="font-mono font-bold text-teal-300">+{pusatBranch?.wa_phone_number || "628110001000"}</p>
+          </div>
+
+          <div className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+            <span className="text-zinc-400 text-[11px]">Aturan Routing:</span>
+            <p className="font-semibold text-emerald-400">Default Fallback (Jika Tanpa Lokasi)</p>
+          </div>
+        </div>
       </div>
 
       {/* Real WhatsApp QR Scanner Widget for POC */}
-      <div className="p-5 bg-white dark:bg-zinc-900 border border-teal-500/40 rounded-2xl space-y-4 shadow-sm dark:shadow-none">
+      <div className="p-5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-4 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-teal-500/20 text-teal-600 dark:text-teal-300 flex items-center justify-center font-bold">
               <Phone className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">Koneksi WhatsApp Real (Untuk Pengujian POC & HP Pribadi)</h3>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">Koneksi WhatsApp Real (Pengujian HP Pribadi POC)</h3>
               <p className="text-xs text-slate-500 dark:text-zinc-400">Pindai QR Code menggunakan aplikasi WhatsApp di HP Anda untuk pengujian pesan langsung.</p>
             </div>
           </div>
@@ -154,8 +252,8 @@ export const SettingsPage: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                <Badge variant="emerald" className="text-[10px] py-0.5 px-2">
-                  Aktif
+                <Badge variant={b.code === "PUSAT" ? "teal" : "emerald"} className="text-[10px] py-0.5 px-2">
+                  {b.code === "PUSAT" ? "KANTOR PUSAT" : "Aktif"}
                 </Badge>
               </div>
 
@@ -199,17 +297,27 @@ export const SettingsPage: React.FC = () => {
           <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <h3 className="text-base font-extrabold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
               <Phone className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-              <span>Edit Pengaturan WA — {editingBranch.name}</span>
+              <span>Edit Pengaturan Cabang — {editingBranch.name}</span>
             </h3>
 
             <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nama Cabang / Unit:</label>
+                <input
+                  type="text"
+                  value={editingBranch.name}
+                  onChange={(e) => setEditingBranch({ ...editingBranch, name: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-slate-800 dark:text-zinc-100 text-xs focus:outline-none focus:border-teal-500 font-bold"
+                />
+              </div>
+
               <div>
                 <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nomor WhatsApp Business (Format International):</label>
                 <input
                   type="text"
                   value={editingBranch.wa_phone_number}
                   onChange={(e) => setEditingBranch({ ...editingBranch, wa_phone_number: e.target.value })}
-                  placeholder="628110001001"
+                  placeholder="628110001000"
                   className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-slate-800 dark:text-zinc-100 text-xs focus:outline-none focus:border-teal-500 font-mono"
                 />
               </div>
@@ -236,6 +344,80 @@ export const SettingsPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setEditingBranch(null)}
+                className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold rounded-xl text-xs"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Branch Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+              <Plus className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+              <span>Tambah Cabang / Setup Kantor Pusat Baru</span>
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nama Cabang / Unit:</label>
+                <input
+                  type="text"
+                  value={newBranch.name}
+                  onChange={(e) => setNewBranch({ ...newBranch, name: e.target.value })}
+                  placeholder="DGT Kantor Pusat / DGT Bandung..."
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-slate-800 dark:text-zinc-100 text-xs focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Kode Singkatan Cabang:</label>
+                <input
+                  type="text"
+                  value={newBranch.code}
+                  onChange={(e) => setNewBranch({ ...newBranch, code: e.target.value.toUpperCase() })}
+                  placeholder="PUSAT / BDG"
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-slate-800 dark:text-zinc-100 text-xs focus:outline-none focus:border-teal-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nomor WhatsApp Business:</label>
+                <input
+                  type="text"
+                  value={newBranch.wa_phone_number}
+                  onChange={(e) => setNewBranch({ ...newBranch, wa_phone_number: e.target.value })}
+                  placeholder="628110001000"
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-slate-800 dark:text-zinc-100 text-xs focus:outline-none focus:border-teal-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Cakupan Area (Dipisah Koma):</label>
+                <textarea
+                  value={newBranch.coverage_areas}
+                  onChange={(e) => setNewBranch({ ...newBranch, coverage_areas: e.target.value })}
+                  placeholder="Pusat, All, General, Default Fallback..."
+                  className="w-full h-20 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-slate-800 dark:text-zinc-100 text-xs focus:outline-none focus:border-teal-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => createMutation.mutate(newBranch)}
+                disabled={createMutation.isPending || !newBranch.name || !newBranch.code}
+                className="flex-1 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-zinc-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" />
+                <span>Simpan Cabang Baru</span>
+              </button>
+              <button
+                onClick={() => setShowAddModal(false)}
                 className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold rounded-xl text-xs"
               >
                 Batal
