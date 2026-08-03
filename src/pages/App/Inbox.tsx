@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Conversation } from "../../api/crmApi";
 import { useAuthStore } from "../../store/useAuthStore";
-import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, Filter } from "lucide-react";
+import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, Filter, Volume2, VolumeX, Bell } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { formatPhoneNumber } from "../../utils/formatters";
+import { playIncomingNotificationSound } from "../../utils/sound";
 
 export const InboxPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -15,6 +16,11 @@ export const InboxPage: React.FC = () => {
   const [targetBranchId, setTargetBranchId] = useState("");
   const [handoverNote, setHandoverNote] = useState("");
   const [filterBranchId, setFilterBranchId] = useState<string>("ALL");
+
+  // Notification Sound & Toast States
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [toastNotification, setToastNotification] = useState<{ title: string; body: string } | null>(null);
+  const prevLastMsgIdRef = useRef<string | null>(null);
 
   const effectiveBranchId = user?.role !== "ADMIN_PUSAT" && user?.branch_id ? user.branch_id : (filterBranchId === "ALL" ? undefined : filterBranchId);
 
@@ -44,6 +50,28 @@ export const InboxPage: React.FC = () => {
     enabled: !!activeConv,
     refetchInterval: 1000,
   });
+
+  // Sound Ringer Effect on Incoming Message
+  useEffect(() => {
+    if (messages.length > 0) {
+      const latestMsg = messages[messages.length - 1];
+      if (
+        prevLastMsgIdRef.current &&
+        latestMsg.id !== prevLastMsgIdRef.current &&
+        latestMsg.direction === "INBOUND"
+      ) {
+        if (soundEnabled) {
+          playIncomingNotificationSound();
+        }
+        setToastNotification({
+          title: `🔔 Chat Masuk: ${activeConv?.lead?.customer_name || "Pelanggan"}`,
+          body: latestMsg.content,
+        });
+        setTimeout(() => setToastNotification(null), 5000);
+      }
+      prevLastMsgIdRef.current = latestMsg.id;
+    }
+  }, [messages, activeConv?.id, soundEnabled]);
 
   const sendMutation = useMutation({
     mutationFn: ({ convId, text }: { convId: string; text: string }) =>
@@ -257,6 +285,24 @@ export const InboxPage: React.FC = () => {
                 </button>
               )}
 
+              {/* Sound Ringer Toggle & Test Button */}
+              <button
+                onClick={() => {
+                  const nextState = !soundEnabled;
+                  setSoundEnabled(nextState);
+                  if (nextState) playIncomingNotificationSound();
+                }}
+                className={`h-8.5 px-2.5 border rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0 ${
+                  soundEnabled
+                    ? "bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border-teal-500/30"
+                    : "bg-slate-200 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border-slate-300 dark:border-zinc-700"
+                }`}
+                title={soundEnabled ? "Dering Dering Chat Masuk Aktif (Klik untuk Matikan / Tes Suara Dering)" : "Dering Matikan (Klik untuk Aktifkan Dering)"}
+              >
+                {soundEnabled ? <Volume2 className="h-3.5 w-3.5 text-teal-500" /> : <VolumeX className="h-3.5 w-3.5 text-slate-400" />}
+                <span>{soundEnabled ? "Dering ON" : "Mute"}</span>
+              </button>
+
               <div className="h-8.5 px-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                 <span>Online</span>
@@ -441,6 +487,22 @@ export const InboxPage: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification for Incoming WhatsApp Message */}
+      {toastNotification && (
+        <div className="fixed bottom-5 right-5 z-50 p-4 bg-slate-900 text-white rounded-2xl shadow-2xl border border-teal-500/50 flex items-start gap-3 max-w-sm">
+          <div className="h-9 w-9 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400 shrink-0">
+            <Bell className="h-5 w-5 animate-pulse" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <h4 className="text-xs font-extrabold text-teal-300">{toastNotification.title}</h4>
+            <p className="text-xs text-slate-200 truncate">{toastNotification.body}</p>
+          </div>
+          <button onClick={() => setToastNotification(null)} className="text-slate-400 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
     </div>
