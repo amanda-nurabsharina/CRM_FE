@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi } from "../../api/crmApi";
-import { Users, Phone, MapPin, UserPlus, GripVertical, MessageSquare } from "lucide-react";
+import { useAuthStore } from "../../store/useAuthStore";
+import { Users, Phone, MapPin, UserPlus, GripVertical, MessageSquare, Building2, Filter } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { formatPhoneNumber } from "../../utils/formatters";
@@ -17,14 +18,23 @@ const PIPELINE_STAGES = [
 
 export const Leads: React.FC = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverStageKey, setDragOverStageKey] = useState<string | null>(null);
+  const [filterBranchId, setFilterBranchId] = useState<string>("ALL");
   const [newLead, setNewLead] = useState({ customer_name: "", phone_number: "", domicile: "Jakarta", source: "WHATSAPP" });
 
+  const effectiveBranchId = user?.role !== "ADMIN_PUSAT" && user?.branch_id ? user.branch_id : (filterBranchId === "ALL" ? undefined : filterBranchId);
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => crmApi.getBranches(),
+  });
+
   const { data: leads = [] } = useQuery({
-    queryKey: ["leads"],
-    queryFn: () => crmApi.getLeads(),
+    queryKey: ["leads", effectiveBranchId],
+    queryFn: () => crmApi.getLeads(effectiveBranchId),
     refetchInterval: 1000,
   });
 
@@ -84,10 +94,35 @@ export const Leads: React.FC = () => {
           </p>
         </div>
 
-        <Button onClick={() => setShowAddModal(true)} variant="primary" size="md">
-          <UserPlus className="h-4 w-4 mr-2" />
-          <span>Tambah Lead Manual</span>
-        </Button>
+        <div className="flex items-center gap-3">
+          {user?.role === "ADMIN_PUSAT" ? (
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-1.5">
+              <Filter className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0" />
+              <select
+                value={filterBranchId}
+                onChange={(e) => setFilterBranchId(e.target.value)}
+                className="bg-transparent text-xs text-slate-800 dark:text-zinc-200 font-bold focus:outline-none"
+              >
+                <option value="ALL">🌐 Semua Cabang (Pusat View)</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    🏢 {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="px-3.5 py-2 bg-teal-500/10 border border-teal-500/20 rounded-xl text-xs font-bold text-teal-700 dark:text-teal-300 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-teal-500" />
+              <span>Cabang: {user?.branch?.name || "Terkunci"}</span>
+            </div>
+          )}
+
+          <Button onClick={() => setShowAddModal(true)} variant="primary" size="md">
+            <UserPlus className="h-4 w-4 mr-2" />
+            <span>Tambah Lead Manual</span>
+          </Button>
+        </div>
       </div>
 
       {/* Spacious Horizontal Scrollable Drag & Drop Kanban Pipeline */}

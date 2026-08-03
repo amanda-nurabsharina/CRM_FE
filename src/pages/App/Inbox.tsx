@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { crmApi } from "../../api/crmApi";
-import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone } from "lucide-react";
+import { crmApi, Conversation } from "../../api/crmApi";
+import { useAuthStore } from "../../store/useAuthStore";
+import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, Filter } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { formatPhoneNumber } from "../../utils/formatters";
 
 export const InboxPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [showHandoverModal, setShowHandoverModal] = useState(false);
   const [targetBranchId, setTargetBranchId] = useState("");
   const [handoverNote, setHandoverNote] = useState("");
+  const [filterBranchId, setFilterBranchId] = useState<string>("ALL");
+
+  const effectiveBranchId = user?.role !== "ADMIN_PUSAT" && user?.branch_id ? user.branch_id : (filterBranchId === "ALL" ? undefined : filterBranchId);
 
   const { data: convs = [] } = useQuery({
-    queryKey: ["conversations"],
-    queryFn: () => crmApi.getConversations(),
+    queryKey: ["conversations", effectiveBranchId],
+    queryFn: () => crmApi.getConversations(effectiveBranchId),
     refetchInterval: 1000,
   });
 
@@ -94,14 +99,39 @@ export const InboxPage: React.FC = () => {
     <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors">
       {/* Left List of Conversations */}
       <div className="w-80 border-r border-slate-200 dark:border-zinc-800/80 flex flex-col bg-white dark:bg-zinc-900/30">
-        <div className="p-4 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between">
-          <div>
+        <div className="p-4 border-b border-slate-200 dark:border-zinc-800/80 space-y-2.5">
+          <div className="flex items-center justify-between">
             <h2 className="text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
               <MessageSquare className="h-5 w-5 text-teal-500 dark:text-teal-400" />
               <span>WhatsApp Inbox</span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Multi-branch customer chats</p>
           </div>
+
+          {/* Branch Filter Selector */}
+          {user?.role === "ADMIN_PUSAT" ? (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
+                Filter View Cabang:
+              </label>
+              <select
+                value={filterBranchId}
+                onChange={(e) => setFilterBranchId(e.target.value)}
+                className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-zinc-200 font-semibold focus:outline-none focus:border-teal-500"
+              >
+                <option value="ALL">🌐 Semua Cabang (Pusat View)</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    🏢 {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="p-2 bg-teal-500/10 border border-teal-500/20 rounded-xl text-xs font-bold text-teal-700 dark:text-teal-300 flex items-center gap-1.5">
+              <Building2 className="h-4 w-4 text-teal-500 shrink-0" />
+              <span className="truncate">{user?.branch?.name || "Cabang Terkunci"}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800/50">

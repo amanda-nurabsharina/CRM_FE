@@ -2,7 +2,9 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'agent';
+  role: string;
+  branch_id?: string;
+  branch?: { id: string; name: string; code: string };
   avatar?: string;
   is_active: boolean;
   created_at?: string;
