@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Branch, User } from "../../api/crmApi";
-import { Settings as SettingsIcon, Phone, MapPin, Building2, Check, ShieldCheck, Plus, UserPlus, Users, KeyRound, Mail, Shield } from "lucide-react";
+import { Settings as SettingsIcon, Phone, MapPin, Building2, Check, ShieldCheck, Plus, UserPlus, Users, KeyRound, Pencil, X } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 
 export const SettingsPage: React.FC = () => {
@@ -12,7 +12,6 @@ export const SettingsPage: React.FC = () => {
 
   const [newBranch, setNewBranch] = useState({ name: "", code: "", wa_phone_number: "", coverage_areas: "" });
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "password123", role: "ADMIN_CABANG", branch_id: "" });
-  const [waScheme, setWaScheme] = useState<"MULTI_NUMBER" | "SINGLE_NUMBER">("MULTI_NUMBER");
 
   const { data: branches = [] } = useQuery({
     queryKey: ["branches"],
@@ -22,20 +21,6 @@ export const SettingsPage: React.FC = () => {
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: () => crmApi.getUsers(),
-  });
-
-  const { data: waStatus } = useQuery({
-    queryKey: ["wa-bridge-status"],
-    queryFn: async () => {
-      try {
-        const res = await fetch("http://localhost:3001/status");
-        if (!res.ok) return null;
-        return (await res.json()) as { status: string; qr_code_url: string };
-      } catch {
-        return null;
-      }
-    },
-    refetchInterval: 3000,
   });
 
   const updateMutation = useMutation({
@@ -71,17 +56,6 @@ export const SettingsPage: React.FC = () => {
     },
   });
 
-  const pusatBranch = branches.find((b) => b.code === "PUSAT" || b.name.toLowerCase().includes("pusat"));
-
-  const handleInitPusat = () => {
-    createMutation.mutate({
-      name: "DGT Kantor Pusat",
-      code: "PUSAT",
-      wa_phone_number: "628110001000",
-      coverage_areas: "Pusat, General, Indonesia, All, Default Fallback",
-    });
-  };
-
   return (
     <div className="p-6 space-y-6 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 min-h-screen transition-colors max-w-7xl mx-auto">
       {/* Header */}
@@ -97,7 +71,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Layout: Left Column (Branches), Right Column (Users & WA Connection) */}
+      {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* 1. Branch Management (2 Columns) */}
@@ -124,7 +98,7 @@ export const SettingsPage: React.FC = () => {
                 return (
                   <div
                     key={branch.id}
-                    className={`p-4 rounded-xl border space-y-2.5 transition-all ${
+                    className={`p-4 rounded-xl border space-y-2.5 transition-all group ${
                       isPusat
                         ? "bg-teal-500/5 dark:bg-teal-950/20 border-teal-500/30"
                         : "bg-slate-50 dark:bg-zinc-950/50 border-slate-200 dark:border-zinc-800"
@@ -139,9 +113,19 @@ export const SettingsPage: React.FC = () => {
                           </Badge>
                         )}
                       </div>
-                      <Badge variant="indigo" className="text-[10px] font-mono px-2 py-0.5">
-                        {branch.code}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="indigo" className="text-[10px] font-mono px-2 py-0.5">
+                          {branch.code}
+                        </Badge>
+                        <button
+                          onClick={() => setEditingBranch(branch)}
+                          className="p-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/30 text-xs font-bold flex items-center gap-1 transition-all"
+                          title="Edit Data & Coverage Area Cabang"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          <span>Edit</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-1 text-xs text-slate-500 dark:text-zinc-400">
@@ -160,7 +144,7 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 2. User Management Card per Branch */}
+          {/* 2. User Management Card */}
           <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800/80 pb-4">
               <div className="flex items-center gap-2.5">
@@ -216,7 +200,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: WhatsApp Integration Info & Quick Info */}
+        {/* Right Column */}
         <div className="space-y-6">
           <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
@@ -253,6 +237,83 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Edit Cabang */}
+      {editingBranch && (
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <Pencil className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                <span>Edit Data Cabang: {editingBranch.name}</span>
+              </h3>
+              <button onClick={() => setEditingBranch(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nama Cabang:</label>
+                <input
+                  type="text"
+                  value={editingBranch.name}
+                  onChange={(e) => setEditingBranch({ ...editingBranch, name: e.target.value })}
+                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Kode Cabang:</label>
+                <input
+                  type="text"
+                  value={editingBranch.code}
+                  onChange={(e) => setEditingBranch({ ...editingBranch, code: e.target.value.toUpperCase() })}
+                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nomor WhatsApp Business:</label>
+                <input
+                  type="text"
+                  value={editingBranch.wa_phone_number}
+                  onChange={(e) => setEditingBranch({ ...editingBranch, wa_phone_number: e.target.value })}
+                  placeholder="628110001000"
+                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Cakupan Area (Dipisah Koma):</label>
+                <textarea
+                  value={editingBranch.coverage_areas}
+                  onChange={(e) => setEditingBranch({ ...editingBranch, coverage_areas: e.target.value })}
+                  placeholder="Tangerang, BSD, Gading Serpong..."
+                  className="w-full h-24 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500 leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setEditingBranch(null)}
+                className="px-4 py-2 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold rounded-xl text-xs"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => updateMutation.mutate(editingBranch)}
+                disabled={updateMutation.isPending || !editingBranch.name || !editingBranch.code}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <Check className="h-4 w-4" />
+                <span>Simpan Perubahan</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Tambah User */}
       {showAddUserModal && (
