@@ -1,22 +1,42 @@
 export function formatPhoneNumber(phone?: string): string {
-  if (!phone) return "No Number";
+  if (!phone) return "-";
 
-  const clean = phone.trim().replace(/[^0-9]/g, "");
+  let clean = phone.replace(/^[^\d+]+/, "").replace(/[^0-9]/g, "").trim();
+  if (!clean) return phone;
 
-  // Standard Indonesian Mobile (e.g. 6281234567890)
-  if (clean.startsWith("628") && clean.length >= 10 && clean.length <= 13) {
+  if (clean.startsWith("08")) {
+    clean = "628" + clean.slice(2);
+  }
+
+  if (clean.startsWith("628") && clean.length >= 10 && clean.length <= 14) {
     return `+62 ${clean.slice(2, 5)}-${clean.slice(5, 9)}-${clean.slice(9)}`;
   }
 
-  // Local Indonesian Mobile (e.g. 081234567890)
-  if (clean.startsWith("08") && clean.length >= 10 && clean.length <= 13) {
-    return `+62 ${clean.slice(1, 4)}-${clean.slice(4, 8)}-${clean.slice(8)}`;
+  if (clean.startsWith("62") && clean.length >= 10) {
+    return `+62 ${clean.slice(2, 5)}-${clean.slice(5, 9)}${clean.length > 9 ? "-" + clean.slice(9) : ""}`;
   }
 
-  // WhatsApp Internal LID (e.g. 71705116557547)
-  if (clean.length > 13 || (!clean.startsWith("62") && !clean.startsWith("08"))) {
-    return `WA ID: ${clean}`;
+  if (clean.length >= 8 && clean.length <= 15) {
+    return `+${clean.slice(0, 3)} ${clean.slice(3, 7)}-${clean.slice(7)}`;
   }
 
   return `+${clean}`;
+}
+
+export function formatCustomerName(name?: string): string {
+  if (!name) return "Pelanggan";
+  let clean = name
+    .replace(/WhatsApp Call \(\+?\d+\)/gi, "Pelanggan (Panggilan WA)")
+    .replace(/WA User \(\+?\d+\)/gi, "Pelanggan WA")
+    .trim();
+  return clean || "Pelanggan";
+}
+
+export function formatCurrency(amount?: number): string {
+  if (!amount) return "Rp 0";
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
