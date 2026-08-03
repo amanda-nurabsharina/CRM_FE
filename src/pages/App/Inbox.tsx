@@ -61,6 +61,9 @@ export const InboxPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
+    onError: (err: any) => {
+      alert("❌ Akses Ditolak: Hanya Admin Pusat yang memiliki wewenang untuk menghapus percakapan WhatsApp.");
+    },
   });
 
   const handoverMutation = useMutation({
@@ -233,15 +236,17 @@ export const InboxPage: React.FC = () => {
                 <span>Handover</span>
               </button>
 
-              <button
-                onClick={() => handleDeleteChat(activeConv.id, activeConv.lead?.customer_name || "Customer")}
-                disabled={deleteMutation.isPending}
-                className="h-8.5 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
-                title="Hapus Percakapan & Reset Data Lead untuk Testing Ulang"
-              >
-                <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                <span>Hapus Chat</span>
-              </button>
+              {user?.role === "ADMIN_PUSAT" && (
+                <button
+                  onClick={() => handleDeleteChat(activeConv.id, activeConv.lead?.customer_name || "Customer")}
+                  disabled={deleteMutation.isPending}
+                  className="h-8.5 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
+                  title="Hapus Percakapan (Wewenang Khusus Admin Pusat)"
+                >
+                  <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-500" />
+                  <span>Hapus Chat</span>
+                </button>
+              )}
 
               <div className="h-8.5 px-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
