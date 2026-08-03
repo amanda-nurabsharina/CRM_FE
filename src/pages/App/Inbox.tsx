@@ -198,20 +198,20 @@ export const InboxPage: React.FC = () => {
       {/* Full Width Chat View */}
       {activeConv ? (
         <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950">
-          {/* Precision Aligned Chat Header */}
-          <div className="h-16 px-6 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-zinc-900/50 shrink-0">
+          {/* Responsive Precision Aligned Chat Header */}
+          <div className="min-h-16 py-2.5 px-4 sm:px-6 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between gap-3 bg-slate-50/80 dark:bg-zinc-900/50 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-sm">
                 {activeConv.lead?.customer_name?.slice(0, 2).toUpperCase() || "WA"}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100 truncate">{activeConv.lead?.customer_name || "WhatsApp Customer"}</h3>
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100 truncate leading-snug">{activeConv.lead?.customer_name || "WhatsApp Customer"}</h3>
                   <Badge variant="indigo" className="text-[10px] py-0.5 px-2 font-bold shrink-0">
                     {activeConv.lead?.status || "NEW"}
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2 mt-0.5 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                   <span>{formatPhoneNumber(activeConv.lead?.phone_number)}</span>
                   <span>•</span>
                   <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-semibold truncate">
