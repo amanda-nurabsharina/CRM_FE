@@ -5,6 +5,7 @@ export interface Branch {
   name: string;
   code: string;
   wa_phone_number: string;
+  voip_phone_number?: string;
   coverage_areas: string;
   is_active?: boolean;
 }

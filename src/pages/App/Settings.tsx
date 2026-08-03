@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Branch, User } from "../../api/crmApi";
-import { Settings as SettingsIcon, Phone, MapPin, Building2, Check, ShieldCheck, Plus, UserPlus, Users, KeyRound, Pencil, X, QrCode, CheckCircle2, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Phone, PhoneCall, MapPin, Building2, Check, ShieldCheck, Plus, UserPlus, Users, KeyRound, Pencil, X, QrCode, CheckCircle2, RefreshCw } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 
 export const SettingsPage: React.FC = () => {
@@ -10,7 +10,7 @@ export const SettingsPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
 
-  const [newBranch, setNewBranch] = useState({ name: "", code: "", wa_phone_number: "", coverage_areas: "" });
+  const [newBranch, setNewBranch] = useState({ name: "", code: "", wa_phone_number: "", voip_phone_number: "", coverage_areas: "" });
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "password123", role: "ADMIN_CABANG", branch_id: "" });
 
   const { data: branches = [] } = useQuery({
@@ -56,7 +56,7 @@ export const SettingsPage: React.FC = () => {
     mutationFn: (b: typeof newBranch) => crmApi.createBranch(b),
     onSuccess: () => {
       setShowAddModal(false);
-      setNewBranch({ name: "", code: "", wa_phone_number: "", coverage_areas: "" });
+      setNewBranch({ name: "", code: "", wa_phone_number: "", voip_phone_number: "", coverage_areas: "" });
       queryClient.invalidateQueries({ queryKey: ["branches"] });
     },
   });
@@ -145,7 +145,11 @@ export const SettingsPage: React.FC = () => {
                     <div className="space-y-1 text-xs text-slate-500 dark:text-zinc-400">
                       <p className="flex items-center gap-1.5 font-mono">
                         <Phone className="h-3.5 w-3.5 text-teal-500 shrink-0" />
-                        <span>+{branch.wa_phone_number || "Belum diatur"}</span>
+                        <span>WA: +{branch.wa_phone_number || "Belum diatur"}</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 font-mono">
+                        <PhoneCall className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <span>VoIP SIP: {branch.voip_phone_number || "Belum diatur"}</span>
                       </p>
                       <p className="flex items-start gap-1.5 text-[11px] leading-tight">
                         <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0 mt-0.5" />
@@ -317,6 +321,17 @@ export const SettingsPage: React.FC = () => {
                   onChange={(e) => setEditingBranch({ ...editingBranch, wa_phone_number: e.target.value })}
                   placeholder="628110001000"
                   className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nomor Telepon VoIP SIP Line Cabang:</label>
+                <input
+                  type="text"
+                  value={editingBranch.voip_phone_number || ""}
+                  onChange={(e) => setEditingBranch({ ...editingBranch, voip_phone_number: e.target.value })}
+                  placeholder="021-5500-888 / SIP Line #101"
+                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
