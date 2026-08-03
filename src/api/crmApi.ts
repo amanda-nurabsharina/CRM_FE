@@ -104,6 +104,20 @@ export interface PaymentProof {
   created_at: string;
 }
 
+export interface BookingTraveler {
+  id: string;
+  lead_id: string;
+  lead?: Lead;
+  full_name: string;
+  id_card_number?: string;
+  passport_number?: string;
+  passport_expiry?: string;
+  birth_date?: string;
+  ktp_photo_url?: string;
+  passport_photo_url?: string;
+  created_at?: string;
+}
+
 export interface DashboardKPIs {
   total_leads: number;
   conversion_rate: number;
@@ -267,5 +281,47 @@ export const crmApi = {
   getAuditLogs: async () => {
     const res = await apiClient.get("audit-logs").json<{ data: AuditLog[] }>();
     return res.data;
+  },
+
+  getTravelers: async (leadId?: string) => {
+    const searchParams = new URLSearchParams();
+    if (leadId) searchParams.append("lead_id", leadId);
+    const res = await apiClient.get("travelers", { searchParams }).json<{ data: BookingTraveler[] }>();
+    return res.data;
+  },
+
+  createTraveler: async (data: {
+    lead_id: string;
+    full_name: string;
+    id_card_number?: string;
+    passport_number?: string;
+    passport_expiry?: string;
+    birth_date?: string;
+    ktp_photo_url?: string;
+    passport_photo_url?: string;
+  }) => {
+    const res = await apiClient.post("travelers", { json: data }).json<{ data: BookingTraveler }>();
+    return res.data;
+  },
+
+  updateTraveler: async (
+    id: string,
+    data: {
+      full_name: string;
+      id_card_number?: string;
+      passport_number?: string;
+      passport_expiry?: string;
+      birth_date?: string;
+      ktp_photo_url?: string;
+      passport_photo_url?: string;
+    }
+  ) => {
+    const res = await apiClient.put(`travelers/${id}`, { json: data }).json<{ data: BookingTraveler }>();
+    return res.data;
+  },
+
+  deleteTraveler: async (id: string) => {
+    const res = await apiClient.delete(`travelers/${id}`).json<{ message: string }>();
+    return res;
   },
 };
