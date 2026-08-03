@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi } from "../../api/crmApi";
-import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, Building2 } from "lucide-react";
+import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 
 export const InboxPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
+  const [showHandoverModal, setShowHandoverModal] = useState(false);
   const [targetBranchId, setTargetBranchId] = useState("");
   const [handoverNote, setHandoverNote] = useState("");
 
@@ -60,7 +61,8 @@ export const InboxPage: React.FC = () => {
     mutationFn: ({ leadId, branchId, note }: { leadId: string; branchId: string; note: string }) =>
       crmApi.handoverLead(leadId, branchId, note),
     onSuccess: () => {
-      alert("Handover cabang & catatan serah terima berhasil disimpan!");
+      setShowHandoverModal(false);
+      alert("Handover cabang & catatan serah terima berhasil diproses!");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
@@ -135,7 +137,7 @@ export const InboxPage: React.FC = () => {
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{conv.lead?.phone_number}</p>
                       <div className="flex items-center gap-1.5 mt-2">
-                        <Badge variant="teal" className="text-[9px] py-0 px-1.5">
+                        <Badge variant="teal" className="text-[9px] py-0 px-1.5 font-bold">
                           {conv.lead?.branch?.name || "DGT Pusat"}
                         </Badge>
                         <Badge variant="indigo" className="text-[9px] py-0 px-1.5">
@@ -162,21 +164,26 @@ export const InboxPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Center Chat View */}
+      {/* Full Width Chat View */}
       {activeConv ? (
         <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950">
           {/* Chat Header */}
           <div className="h-16 px-6 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between bg-slate-50 dark:bg-zinc-900/50">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-600 dark:text-teal-300 font-bold flex items-center justify-center text-xs">
+              <div className="h-10 w-10 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-600 dark:text-teal-300 font-bold flex items-center justify-center text-xs">
                 {activeConv.lead?.customer_name?.slice(0, 2).toUpperCase() || "WA"}
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">{activeConv.lead?.customer_name || "WhatsApp Customer"}</h3>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                  <span>{activeConv.lead?.customer_name || "WhatsApp Customer"}</span>
+                  <Badge variant="indigo" className="text-[10px] py-0.5 px-2">
+                    {activeConv.lead?.status || "NEW"}
+                  </Badge>
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2 mt-0.5">
                   <span>{activeConv.lead?.phone_number}</span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]">
+                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                     <MapPin className="h-3 w-3 shrink-0" />
                     <span className="truncate">{activeConv.lead?.branch?.name || activeConv.lead?.domicile || "Domisili Belum Set"}</span>
                   </span>
@@ -184,18 +191,28 @@ export const InboxPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Inline Action Buttons */}
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowHandoverModal(true)}
+                className="px-3.5 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                title="Pindah Cabang & Catatan Handover"
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                <span>Handover Cabang</span>
+              </button>
+
               <button
                 onClick={() => handleDeleteChat(activeConv.id, activeConv.lead?.customer_name || "Customer")}
                 disabled={deleteMutation.isPending}
-                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                className="px-3.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
                 title="Hapus Percakapan & Reset Data Lead untuk Testing Ulang"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>Hapus Chat (Testing)</span>
               </button>
 
-              <Badge variant="emerald" className="text-xs py-1 px-3">
+              <Badge variant="emerald" className="text-xs py-1.5 px-3">
                 WABA Official Connected
               </Badge>
             </div>
@@ -217,7 +234,7 @@ export const InboxPage: React.FC = () => {
                     className={`flex flex-col ${isOutbound ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`max-w-md px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${
+                      className={`max-w-lg px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${
                         isOutbound
                           ? "bg-teal-600 text-white rounded-br-none shadow-lg shadow-teal-600/10"
                           : "bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 rounded-bl-none shadow-sm"
@@ -246,7 +263,7 @@ export const InboxPage: React.FC = () => {
             <button
               type="submit"
               disabled={sendMutation.isPending || !messageText.trim()}
-              className="px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md shadow-teal-500/20 disabled:opacity-50"
+              className="px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md shadow-teal-500/20 disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
               <span>Kirim WA</span>
@@ -259,77 +276,92 @@ export const InboxPage: React.FC = () => {
         </div>
       )}
 
-      {/* Right Lead Context & Interactive Handover Panel */}
-      {activeConv?.lead && (
-        <div className="w-80 border-l border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-900/40 p-5 space-y-6 overflow-y-auto">
-          <div>
-            <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Informasi Customer</h4>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800/60">
-                <span className="text-slate-500 dark:text-zinc-500">Nama</span>
-                <span className="font-semibold text-slate-800 dark:text-zinc-200">{activeConv.lead.customer_name}</span>
+      {/* Handover Modal Popup */}
+      {showHandoverModal && activeConv?.lead && (
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <ArrowRightLeft className="h-5 w-5 text-teal-500" />
+                <span>Form Handover & Serah Terima Lead</span>
+              </h3>
+              <button
+                onClick={() => setShowHandoverModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Lead Summary Box */}
+            <div className="p-3.5 bg-slate-50 dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 rounded-xl space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-zinc-400 font-medium">Customer:</span>
+                <span className="font-bold text-slate-900 dark:text-zinc-100">{activeConv.lead.customer_name}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800/60">
-                <span className="text-slate-500 dark:text-zinc-500">Nomor WA</span>
-                <span className="font-semibold text-slate-800 dark:text-zinc-200">{activeConv.lead.phone_number}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-zinc-400 font-medium">Nomor WA:</span>
+                <span className="font-mono text-slate-800 dark:text-zinc-200">{activeConv.lead.phone_number}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800/60">
-                <span className="text-slate-500 dark:text-zinc-500">Cabang Saat Ini</span>
-                <span className="font-bold text-teal-600 dark:text-teal-400">{activeConv.lead.branch?.name || "DGT Pusat"}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800/60">
-                <span className="text-slate-500 dark:text-zinc-500">Status Pipeline</span>
-                <Badge variant="indigo" className="text-[10px] py-0 px-2">
-                  {activeConv.lead.status}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-zinc-400 font-medium">Cabang Saat Ini:</span>
+                <Badge variant="teal" className="text-[10px] py-0.5 px-2 font-bold">
+                  {activeConv.lead.branch?.name || "DGT Pusat"}
                 </Badge>
               </div>
             </div>
-          </div>
 
-          {/* Interactive Handover / Transfer Branch Section */}
-          <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-slate-900 dark:text-zinc-100 border-b border-slate-100 dark:border-zinc-800 pb-2">
-              <ArrowRightLeft className="h-4 w-4 text-teal-500" />
-              <span>Pindah Cabang & Catatan Handover</span>
-            </div>
-
-            <div className="space-y-3 text-xs">
+            {/* Handover Form Inputs */}
+            <div className="space-y-4 text-xs">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 mb-1">
-                  Pindah Cabang (Transfer Lead):
+                <label className="block text-slate-700 dark:text-zinc-300 font-bold mb-1.5 flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-teal-500" />
+                  <span>Pindah ke Cabang Tujuan:</span>
                 </label>
                 <select
                   value={targetBranchId}
                   onChange={(e) => setTargetBranchId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500"
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500"
                 >
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.name} ({b.code})
+                      {b.name} ({b.code}) - Area: {b.coverage_areas}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 mb-1">
+                <label className="block text-slate-700 dark:text-zinc-300 font-bold mb-1.5">
                   Catatan Serah Terima (Handover Note):
                 </label>
                 <textarea
                   value={handoverNote}
                   onChange={(e) => setHandoverNote(e.target.value)}
                   placeholder="Ketik catatan serah terima antar admin cabang (misal: Pelanggan minta berangkat via Medan bulan depan)..."
-                  className="w-full h-24 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-slate-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-teal-500 leading-relaxed"
+                  className="w-full h-28 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-xs text-slate-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-teal-500 leading-relaxed"
                 />
               </div>
+            </div>
 
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-zinc-800">
               <button
+                type="button"
+                onClick={() => setShowHandoverModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl text-xs font-bold transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
                 onClick={handleSaveHandover}
                 disabled={handoverMutation.isPending || !targetBranchId}
-                className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="px-5 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-teal-500/20 disabled:opacity-50"
               >
                 <Check className="h-4 w-4" />
-                <span>Simpan Handover & Pindah Cabang</span>
+                <span>{handoverMutation.isPending ? "Memproses..." : "Proses Handover"}</span>
               </button>
             </div>
           </div>
