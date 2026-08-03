@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Branch, User } from "../../api/crmApi";
-import { Settings as SettingsIcon, Phone, MapPin, Building2, Check, ShieldCheck, Plus, UserPlus, Users, KeyRound, Pencil, X } from "lucide-react";
+import { Settings as SettingsIcon, Phone, MapPin, Building2, Check, ShieldCheck, Plus, UserPlus, Users, KeyRound, Pencil, X, QrCode, CheckCircle2, RefreshCw } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 
 export const SettingsPage: React.FC = () => {
@@ -21,6 +21,20 @@ export const SettingsPage: React.FC = () => {
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: () => crmApi.getUsers(),
+  });
+
+  const { data: waStatus } = useQuery({
+    queryKey: ["wa-bridge-status"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("http://localhost:3001/status");
+        if (!res.ok) return null;
+        return (await res.json()) as { status: string; qr_code_url: string };
+      } catch {
+        return null;
+      }
+    },
+    refetchInterval: 2000,
   });
 
   const updateMutation = useMutation({
@@ -200,26 +214,48 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column */}
+        {/* Right Column: WhatsApp Gateway QR Code Scanner */}
         <div className="space-y-6">
           <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
-              <ShieldCheck className="h-5 w-5 text-emerald-500" />
-              <h2 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">Status Gateway WhatsApp</h2>
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <QrCode className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                <h2 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">WhatsApp Web QR Scanner</h2>
+              </div>
+              <Badge variant={waStatus?.status === "CONNECTED" ? "emerald" : "amber"} className="text-[10px] font-bold">
+                {waStatus?.status === "CONNECTED" ? "CONNECTED" : waStatus?.status === "PAIRING" ? "READY TO SCAN" : "DISCONNECTED"}
+              </Badge>
             </div>
 
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  WABA Socket Connected
-                </span>
-                <Badge variant="emerald">ONLINE</Badge>
+            {waStatus?.status === "CONNECTED" ? (
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2 text-center">
+                <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mb-1">
+                  <CheckCircle2 className="h-7 w-7" />
+                </div>
+                <h3 className="text-xs font-extrabold text-emerald-800 dark:text-emerald-300">WhatsApp Terhubung Online!</h3>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-400 leading-snug">
+                  Koneksi socket Baileys aktif di port 3001. Seluruh pesan WA masuk & keluar tersinkronisasi otomatis.
+                </p>
               </div>
-              <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
-                Server wa_bridge aktif di port 3001. Siap menerima & mengirim pesan WhatsApp multi-cabang.
-              </p>
-            </div>
+            ) : waStatus?.qr_code_url ? (
+              <div className="p-4 bg-slate-50 dark:bg-zinc-950/80 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-3">
+                <div className="p-3 bg-white rounded-2xl inline-block shadow-md border border-slate-200">
+                  <img src={waStatus.qr_code_url} alt="WhatsApp QR Code" className="w-48 h-48 mx-auto" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-zinc-100">Scan QR Code Ini via WhatsApp HP</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                    Buka WhatsApp ➔ Perangkat Tertaut ➔ Scan gambar di atas.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-2 text-xs text-slate-500 dark:text-zinc-400">
+                <RefreshCw className="h-6 w-6 text-teal-500 mx-auto animate-spin" />
+                <p className="font-semibold text-slate-700 dark:text-zinc-300">Menghubungkan ke Server WA Bridge...</p>
+                <p className="text-[10px]">Pastikan server wa_bridge aktif di http://localhost:3001.</p>
+              </div>
+            )}
           </div>
 
           <div className="bg-slate-900 text-white rounded-2xl p-5 space-y-3 shadow-md">
