@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { ModernSidebar } from "../../components/layout/ModernSidebar";
 import { Header } from "../../components/layout/Header";
+import { GlobalWhatsAppNotifier } from "../../components/layout/GlobalWhatsAppNotifier";
 import { useAuthStore } from "../../store/useAuthStore";
 
 export const AppLayout: React.FC = () => {
@@ -24,6 +25,9 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 overflow-hidden transition-colors">
+      {/* Global App-Wide WhatsApp Notification Sound & Toast Listener */}
+      <GlobalWhatsAppNotifier />
+
       {/* Modern Floating Sidebar Menu */}
       <ModernSidebar />
 
