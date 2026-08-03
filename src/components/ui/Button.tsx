@@ -23,10 +23,10 @@ export const Button: React.FC<ButtonProps> = ({
     primary:
       "bg-gradient-to-r from-teal-500 via-teal-600 to-emerald-600 text-white shadow-lg shadow-teal-500/20 hover:shadow-teal-500/35 hover:scale-[1.01] active:scale-[0.99]",
     secondary:
-      "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700/60 shadow-sm hover:border-zinc-600",
+      "bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700/60 shadow-sm",
     outline:
-      "border border-teal-500/40 text-teal-300 hover:bg-teal-500/10 hover:border-teal-500/80",
-    ghost: "bg-transparent hover:bg-zinc-800/60 text-zinc-300 hover:text-white",
+      "border border-teal-500/40 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 hover:border-teal-500/80",
+    ghost: "bg-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/60 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white",
     danger: "bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/20",
   };
 

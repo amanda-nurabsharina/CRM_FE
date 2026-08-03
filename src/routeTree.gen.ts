@@ -15,8 +15,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAuditRouteImport } from './routes/app/audit'
 import { Route as AppBillingRouteImport } from './routes/app/billing'
+import { Route as AppCatalogRouteImport } from './routes/app/catalog'
 import { Route as AppContactsRouteImport } from './routes/app/contacts'
 import { Route as AppDealsRouteImport } from './routes/app/deals'
+import { Route as AppDocumentsRouteImport } from './routes/app/documents'
 import { Route as AppInboxRouteImport } from './routes/app/inbox'
 import { Route as AppLeadsRouteImport } from './routes/app/leads'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
@@ -52,6 +54,11 @@ const AppBillingRoute = AppBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCatalogRoute = AppCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContactsRoute = AppContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
@@ -60,6 +67,11 @@ const AppContactsRoute = AppContactsRouteImport.update({
 const AppDealsRoute = AppDealsRouteImport.update({
   id: '/deals',
   path: '/deals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDocumentsRoute = AppDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
@@ -89,8 +101,10 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
+  '/app/catalog': typeof AppCatalogRoute
   '/app/contacts': typeof AppContactsRoute
   '/app/deals': typeof AppDealsRoute
+  '/app/documents': typeof AppDocumentsRoute
   '/app/inbox': typeof AppInboxRoute
   '/app/leads': typeof AppLeadsRoute
   '/app/settings': typeof AppSettingsRoute
@@ -102,8 +116,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
+  '/app/catalog': typeof AppCatalogRoute
   '/app/contacts': typeof AppContactsRoute
   '/app/deals': typeof AppDealsRoute
+  '/app/documents': typeof AppDocumentsRoute
   '/app/inbox': typeof AppInboxRoute
   '/app/leads': typeof AppLeadsRoute
   '/app/settings': typeof AppSettingsRoute
@@ -117,8 +133,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/app/audit': typeof AppAuditRoute
   '/app/billing': typeof AppBillingRoute
+  '/app/catalog': typeof AppCatalogRoute
   '/app/contacts': typeof AppContactsRoute
   '/app/deals': typeof AppDealsRoute
+  '/app/documents': typeof AppDocumentsRoute
   '/app/inbox': typeof AppInboxRoute
   '/app/leads': typeof AppLeadsRoute
   '/app/settings': typeof AppSettingsRoute
@@ -133,8 +151,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/audit'
     | '/app/billing'
+    | '/app/catalog'
     | '/app/contacts'
     | '/app/deals'
+    | '/app/documents'
     | '/app/inbox'
     | '/app/leads'
     | '/app/settings'
@@ -146,8 +166,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/audit'
     | '/app/billing'
+    | '/app/catalog'
     | '/app/contacts'
     | '/app/deals'
+    | '/app/documents'
     | '/app/inbox'
     | '/app/leads'
     | '/app/settings'
@@ -160,8 +182,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/audit'
     | '/app/billing'
+    | '/app/catalog'
     | '/app/contacts'
     | '/app/deals'
+    | '/app/documents'
     | '/app/inbox'
     | '/app/leads'
     | '/app/settings'
@@ -219,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBillingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/catalog': {
+      id: '/app/catalog'
+      path: '/catalog'
+      fullPath: '/app/catalog'
+      preLoaderRoute: typeof AppCatalogRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/contacts': {
       id: '/app/contacts'
       path: '/contacts'
@@ -231,6 +262,13 @@ declare module '@tanstack/react-router' {
       path: '/deals'
       fullPath: '/app/deals'
       preLoaderRoute: typeof AppDealsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/documents': {
+      id: '/app/documents'
+      path: '/documents'
+      fullPath: '/app/documents'
+      preLoaderRoute: typeof AppDocumentsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/inbox': {
@@ -267,8 +305,10 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
   AppBillingRoute: typeof AppBillingRoute
+  AppCatalogRoute: typeof AppCatalogRoute
   AppContactsRoute: typeof AppContactsRoute
   AppDealsRoute: typeof AppDealsRoute
+  AppDocumentsRoute: typeof AppDocumentsRoute
   AppInboxRoute: typeof AppInboxRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -278,8 +318,10 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
   AppBillingRoute: AppBillingRoute,
+  AppCatalogRoute: AppCatalogRoute,
   AppContactsRoute: AppContactsRoute,
   AppDealsRoute: AppDealsRoute,
+  AppDocumentsRoute: AppDocumentsRoute,
   AppInboxRoute: AppInboxRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppSettingsRoute: AppSettingsRoute,

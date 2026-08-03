@@ -7,3 +7,5 @@ export * from "./Settings";
 export * from "./Inbox";
 export * from "./Billing";
 export * from "./Audit";
+export * from "./Catalog";
+export * from "./Documents";

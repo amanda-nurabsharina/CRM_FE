@@ -5,13 +5,14 @@ import { KanbanSquare } from "lucide-react";
 export const Deals: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <KanbanSquare className="h-6 w-6 text-teal-400" /> Sales & Deals Pipeline
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800/80 pb-5">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+          <KanbanSquare className="h-7 w-7 text-teal-600 dark:text-teal-400" />
+          <span>Sales & Deals Pipeline</span>
         </h1>
       </div>
       <Card>
-        <p className="text-zinc-400 text-sm">Kanban deal stages from discovery to closed won.</p>
+        <p className="text-slate-600 dark:text-zinc-400 text-sm">Kanban deal stages from lead qualification, quotation generation, to closed won payments.</p>
       </Card>
     </div>
   );
