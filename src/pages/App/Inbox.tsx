@@ -167,54 +167,55 @@ export const InboxPage: React.FC = () => {
       {/* Full Width Chat View */}
       {activeConv ? (
         <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950">
-          {/* Chat Header */}
-          <div className="h-16 px-6 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between bg-slate-50 dark:bg-zinc-900/50">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-600 dark:text-teal-300 font-bold flex items-center justify-center text-xs">
+          {/* Precision Aligned Chat Header */}
+          <div className="h-16 px-6 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-zinc-900/50 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-sm">
                 {activeConv.lead?.customer_name?.slice(0, 2).toUpperCase() || "WA"}
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
-                  <span>{activeConv.lead?.customer_name || "WhatsApp Customer"}</span>
-                  <Badge variant="indigo" className="text-[10px] py-0.5 px-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100 truncate">{activeConv.lead?.customer_name || "WhatsApp Customer"}</h3>
+                  <Badge variant="indigo" className="text-[10px] py-0.5 px-2 font-bold shrink-0">
                     {activeConv.lead?.status || "NEW"}
                   </Badge>
-                </h3>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2 mt-0.5">
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2 mt-0.5 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                   <span>{activeConv.lead?.phone_number}</span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                    <MapPin className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{activeConv.lead?.branch?.name || activeConv.lead?.domicile || "Domisili Belum Set"}</span>
+                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-semibold truncate">
+                    <MapPin className="h-3 w-3 shrink-0 text-teal-500" />
+                    <span className="truncate">{activeConv.lead?.branch?.name || activeConv.lead?.domicile || "DGT Pusat"}</span>
                   </span>
                 </p>
               </div>
             </div>
 
-            {/* Inline Action Buttons */}
-            <div className="flex items-center gap-3">
+            {/* Precision Aligned Action Buttons & Status Badge */}
+            <div className="flex items-center gap-2.5 shrink-0">
               <button
                 onClick={() => setShowHandoverModal(true)}
-                className="px-3.5 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                className="h-9 px-3.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
                 title="Pindah Cabang & Catatan Handover"
               >
-                <ArrowRightLeft className="h-3.5 w-3.5" />
+                <ArrowRightLeft className="h-3.5 w-3.5 shrink-0 text-teal-500" />
                 <span>Handover Cabang</span>
               </button>
 
               <button
                 onClick={() => handleDeleteChat(activeConv.id, activeConv.lead?.customer_name || "Customer")}
                 disabled={deleteMutation.isPending}
-                className="px-3.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                className="h-9 px-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
                 title="Hapus Percakapan & Reset Data Lead untuk Testing Ulang"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-500" />
                 <span>Hapus Chat (Testing)</span>
               </button>
 
-              <Badge variant="emerald" className="text-xs py-1.5 px-3">
-                WABA Official Connected
-              </Badge>
+              <div className="h-9 px-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span>WABA Connected</span>
+              </div>
             </div>
           </div>
 
