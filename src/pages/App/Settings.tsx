@@ -50,6 +50,10 @@ export const SettingsPage: React.FC = () => {
     onSuccess: () => {
       setEditingBranch(null);
       queryClient.invalidateQueries({ queryKey: ["branches"] });
+      alert("✅ Data Cabang & Nomor Telepon VoIP SIP Line Berhasil Disimpan!");
+    },
+    onError: (err: any) => {
+      alert(`❌ Gagal menyimpan data cabang: ${err.message || "Terjadi kesalahan"}`);
     },
   });
 
