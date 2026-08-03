@@ -160,6 +160,7 @@ export const crmApi = {
   },
 
   testVoIPCall: async (sipLine?: string) => {
+    window.dispatchEvent(new CustomEvent("trigger-voip-call", { detail: { sipLine: sipLine || "087884120217" } }));
     const res = await apiClient
       .post("webhooks/voip", {
         json: {

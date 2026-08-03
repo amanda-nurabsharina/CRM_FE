@@ -15,6 +15,24 @@ export const VoIPSoftphone: React.FC = () => {
   const timerRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  // Listen for Trigger VoIP Call Event
+  useEffect(() => {
+    const handleVoIPCallEvent = (e: any) => {
+      const line = e.detail?.sipLine || "087884120217";
+      setCallerInfo({
+        phone: "6281298765432",
+        name: "Budi Santoso (Pelanggan VoIP)",
+        line: `SIP Line #${line}`,
+      });
+      setCallState("RINGING");
+    };
+
+    window.addEventListener("trigger-voip-call", handleVoIPCallEvent);
+    return () => {
+      window.removeEventListener("trigger-voip-call", handleVoIPCallEvent);
+    };
+  }, []);
+
   // Sound Ringer Effect for Inbound VoIP Call
   useEffect(() => {
     let ringInterval: any = null;
