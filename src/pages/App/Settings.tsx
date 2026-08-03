@@ -152,10 +152,20 @@ export const SettingsPage: React.FC = () => {
                         <Phone className="h-3.5 w-3.5 text-teal-500 shrink-0" />
                         <span>WA: +{branch.wa_phone_number || "Belum diatur"}</span>
                       </p>
-                      <p className="flex items-center gap-1.5 font-mono">
-                        <PhoneCall className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                        <span>VoIP SIP: {branch.voip_phone_number || "Belum diatur"}</span>
-                      </p>
+                      <div className="flex items-center justify-between pt-0.5">
+                        <p className="flex items-center gap-1.5 font-mono">
+                          <PhoneCall className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span>VoIP SIP: {branch.voip_phone_number || "Belum diatur"}</span>
+                        </p>
+                        <button
+                          onClick={() => crmApi.testVoIPCall(branch.voip_phone_number)}
+                          className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1"
+                          title="Simulasikan Panggilan Telepon VoIP Masuk"
+                        >
+                          <PhoneCall className="h-3 w-3" />
+                          <span>Tes Panggilan</span>
+                        </button>
+                      </div>
                       <p className="flex items-start gap-1.5 text-[11px] leading-tight">
                         <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0 mt-0.5" />
                         <span className="text-slate-700 dark:text-zinc-300">{branch.coverage_areas || "Tidak ada coverage area"}</span>

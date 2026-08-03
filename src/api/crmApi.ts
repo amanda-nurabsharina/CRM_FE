@@ -159,6 +159,19 @@ export const crmApi = {
     return res.data;
   },
 
+  testVoIPCall: async (sipLine?: string) => {
+    const res = await apiClient
+      .post("webhooks/voip", {
+        json: {
+          from_phone: "081298765432",
+          caller_name: "Budi Santoso (Pelanggan VoIP)",
+          sip_line: sipLine || "087884120217",
+        },
+      })
+      .json<{ data: any }>();
+    return res.data;
+  },
+
   getUsers: async () => {
     const res = await apiClient.get("users").json<{ data: User[] }>();
     return res.data;
