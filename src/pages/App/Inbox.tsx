@@ -12,6 +12,7 @@ export const InboxPage: React.FC = () => {
   const { data: convs = [] } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => crmApi.getConversations(),
+    refetchInterval: 1000,
   });
 
   const activeConv = convs.find((c) => c.id === selectedConvId) || convs[0];
@@ -20,6 +21,7 @@ export const InboxPage: React.FC = () => {
     queryKey: ["messages", activeConv?.id],
     queryFn: () => (activeConv ? crmApi.getMessages(activeConv.id) : Promise.resolve([])),
     enabled: !!activeConv,
+    refetchInterval: 1000,
   });
 
   const sendMutation = useMutation({
