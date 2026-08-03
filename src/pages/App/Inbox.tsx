@@ -176,9 +176,9 @@ export const InboxPage: React.FC = () => {
                 <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-2">
                   <span>{activeConv.lead?.phone_number}</span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-medium">
-                    <MapPin className="h-3 w-3" />
-                    {activeConv.lead?.domicile || "Domisili Belum Set"}
+                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{activeConv.lead?.domicile || "Domisili Belum Set"}</span>
                   </span>
                 </p>
               </div>
