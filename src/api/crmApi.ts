@@ -9,6 +9,17 @@ export interface Branch {
   is_active?: boolean;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  branch_id?: string;
+  branch?: Branch;
+  is_active?: boolean;
+  created_at?: string;
+}
+
 export interface Lead {
   id: string;
   customer_name: string;
@@ -123,6 +134,16 @@ export const crmApi = {
 
   createBranch: async (data: { name: string; code: string; wa_phone_number: string; coverage_areas: string }) => {
     const res = await apiClient.post("branches", { json: data }).json<{ data: Branch }>();
+    return res.data;
+  },
+
+  getUsers: async () => {
+    const res = await apiClient.get("users").json<{ data: User[] }>();
+    return res.data;
+  },
+
+  createUser: async (data: { name: string; email: string; password?: string; role?: string; branch_id?: string }) => {
+    const res = await apiClient.post("users", { json: data }).json<{ data: User }>();
     return res.data;
   },
 

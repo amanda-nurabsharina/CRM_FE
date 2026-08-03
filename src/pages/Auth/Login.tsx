@@ -102,25 +102,43 @@ export const Login: React.FC = () => {
       {/* Quick Demo Fill Buttons */}
       <div className="pt-4 border-t border-zinc-800/80 space-y-2">
         <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider text-center">
-          Quick Demo Accounts (One-Click)
+          Quick Demo Accounts (1-Click Login All Branches)
         </p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => handleDemoFill("admin@crm.com")}
+            onClick={() => handleDemoFill("pusat@dgt.co.id")}
             className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-left transition-all group"
           >
-            <p className="text-xs font-bold text-teal-400 group-hover:underline">Admin User</p>
-            <p className="text-[10px] text-zinc-500 truncate">admin@crm.com</p>
+            <p className="text-xs font-bold text-teal-400 group-hover:underline">👑 Admin Pusat</p>
+            <p className="text-[10px] text-zinc-500 truncate">pusat@dgt.co.id</p>
           </button>
 
           <button
             type="button"
-            onClick={() => handleDemoFill("agent@crm.com")}
+            onClick={() => handleDemoFill("admin.jkt@dgt.co.id")}
             className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-left transition-all group"
           >
-            <p className="text-xs font-bold text-indigo-400 group-hover:underline">Sales Agent</p>
-            <p className="text-[10px] text-zinc-500 truncate">agent@crm.com</p>
+            <p className="text-xs font-bold text-indigo-400 group-hover:underline">🏢 Admin Jkt Pusat</p>
+            <p className="text-[10px] text-zinc-500 truncate">admin.jkt@dgt.co.id</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleDemoFill("admin.mdn@dgt.co.id")}
+            className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-left transition-all group"
+          >
+            <p className="text-xs font-bold text-emerald-400 group-hover:underline">🌴 Admin Medan</p>
+            <p className="text-[10px] text-zinc-500 truncate">admin.mdn@dgt.co.id</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleDemoFill("admin.tgr@dgt.co.id")}
+            className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-left transition-all group"
+          >
+            <p className="text-xs font-bold text-amber-400 group-hover:underline">✈️ Admin Tangerang</p>
+            <p className="text-[10px] text-zinc-500 truncate">admin.tgr@dgt.co.id</p>
           </button>
         </div>
       </div>
