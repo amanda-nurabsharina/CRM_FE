@@ -170,7 +170,7 @@ export const InboxPage: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{formatPhoneNumber(conv.lead?.phone_number)}</p>
-                      <div className="flex items-center gap-1.5 mt-2">
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                         <Badge variant="teal" className="text-[9px] py-0 px-1.5 font-bold">
                           {conv.lead?.branch?.name || "DGT Pusat"}
                         </Badge>
@@ -178,19 +178,28 @@ export const InboxPage: React.FC = () => {
                           {conv.lead?.status || "NEW"}
                         </Badge>
                       </div>
+
+                      {conv.lead?.handover_note && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium truncate mt-1.5 flex items-center gap-1 bg-amber-500/10 dark:bg-amber-500/20 px-1.5 py-0.5 rounded-md border border-amber-500/20">
+                          <ArrowRightLeft className="h-3 w-3 shrink-0 text-amber-500" />
+                          <span className="truncate">Note: {conv.lead.handover_note}</span>
+                        </p>
+                      )}
                     </div>
                   </button>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteChat(conv.id, customerName);
-                    }}
-                    title="Hapus Chat Testing"
-                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {user?.role === "ADMIN_PUSAT" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChat(conv.id, customerName);
+                      }}
+                      title="Hapus Chat Testing"
+                      className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               );
             })
@@ -254,6 +263,23 @@ export const InboxPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Prominent Handover Note Banner */}
+          {activeConv.lead?.handover_note && (
+            <div className="px-4 py-2 bg-amber-500/10 dark:bg-amber-500/15 border-b border-amber-500/30 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 font-medium shrink-0 animate-fadeIn">
+              <div className="flex items-center gap-2 min-w-0">
+                <ArrowRightLeft className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="font-extrabold shrink-0">Catatan Handover Cabang:</span>
+                <span className="truncate italic font-semibold">"{activeConv.lead.handover_note}"</span>
+              </div>
+              <button
+                onClick={() => setShowHandoverModal(true)}
+                className="text-[10px] underline font-bold text-amber-700 dark:text-amber-300 hover:text-amber-900 shrink-0 ml-2"
+              >
+                Edit Note
+              </button>
+            </div>
+          )}
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-100/50 dark:bg-zinc-950/60">
