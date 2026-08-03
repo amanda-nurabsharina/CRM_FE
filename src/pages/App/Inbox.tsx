@@ -279,7 +279,7 @@ export const InboxPage: React.FC = () => {
       {/* Handover Modal Popup */}
       {showHandoverModal && activeConv?.lead && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
               <h3 className="text-base font-extrabold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
@@ -322,14 +322,27 @@ export const InboxPage: React.FC = () => {
                 <select
                   value={targetBranchId}
                   onChange={(e) => setTargetBranchId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500"
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500 truncate"
                 >
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.name} ({b.code}) - Area: {b.coverage_areas}
+                      {b.name} ({b.code})
                     </option>
                   ))}
                 </select>
+
+                {(() => {
+                  const selectedBranch = branches.find((b) => b.id === targetBranchId);
+                  return selectedBranch ? (
+                    <div className="mt-2.5 p-2.5 bg-teal-500/10 border border-teal-500/20 rounded-xl text-[11px] text-teal-700 dark:text-teal-300 flex items-start gap-2">
+                      <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-teal-500" />
+                      <div>
+                        <span className="font-bold block">Cakupan Area:</span>
+                        <span className="text-slate-600 dark:text-zinc-400">{selectedBranch.coverage_areas}</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               <div>
