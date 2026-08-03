@@ -131,7 +131,9 @@ export interface DashboardKPIs {
 export interface AuditLog {
   id: string;
   user_id?: string;
+  user?: User;
   branch_id?: string;
+  branch?: Branch;
   action_type: string;
   entity_name: string;
   entity_id: string;
