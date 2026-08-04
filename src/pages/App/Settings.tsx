@@ -29,14 +29,25 @@ export const SettingsPage: React.FC = () => {
     queryKey: ["wa-bridge-status", host],
     queryFn: async () => {
       try {
-        let res = await fetch(`http://${host}:3001/status`).catch(() => null);
+        // 1. Try relative path /wa-bridge/status first (Safe for HTTPS deployment & Nginx proxy)
+        let res = await fetch("/wa-bridge/status").catch(() => null);
+
+        // 2. Fallback to direct HTTP port 3001 only if not on HTTPS
         if (!res || !res.ok) {
-          res = await fetch("/wa-bridge/status").catch(() => null);
+          if (typeof window !== "undefined" && window.location.protocol !== "https:") {
+            res = await fetch(`http://${host}:3001/status`).catch(() => null);
+          }
         }
+
         if (!res || !res.ok) return null;
         const data = await res.json();
-        if (data && data.qr_code_url && data.qr_code_url.includes("localhost")) {
-          data.qr_code_url = data.qr_code_url.replace("localhost", host);
+        if (data && data.qr_code_url) {
+          if (data.qr_code_url.includes("localhost")) {
+            data.qr_code_url = data.qr_code_url.replace("localhost", host);
+          }
+          if (typeof window !== "undefined" && window.location.protocol === "https:" && data.qr_code_url.startsWith("http:")) {
+            data.qr_code_url = data.qr_code_url.replace("http:", "https:");
+          }
         }
         return data as { status: string; qr_code_url: string };
       } catch {

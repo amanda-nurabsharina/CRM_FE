@@ -157,25 +157,8 @@ export const InboxPage: React.FC = () => {
     let cleanPhone = phone.replace(/[^0-9]/g, "");
     if (cleanPhone.startsWith("0")) cleanPhone = "62" + cleanPhone.slice(1);
 
-    const customerName = name || activeConv?.lead?.customer_name || "Pelanggan WhatsApp";
-
-    // 1. Open WhatsApp Web directly in new window
+    // Open WhatsApp Web directly in new window (no call overlay modal)
     window.open(`https://web.whatsapp.com/send?phone=${cleanPhone}`, "_blank");
-
-    // 2. Trigger softphone ringing notification overlay in CRM
-    window.dispatchEvent(
-      new CustomEvent("trigger-voip-call", {
-        detail: {
-          sipLine: cleanPhone,
-          name: customerName,
-          channel: "WHATSAPP",
-          provider: "WHATSAPP_WEB_DIRECT",
-          direction: "OUTBOUND",
-          providerCallId: `WACALL-${Date.now()}`,
-        },
-      })
-    );
-
     setShowCallModal(false);
   };
 
