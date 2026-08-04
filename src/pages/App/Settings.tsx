@@ -25,41 +25,46 @@ export const SettingsPage: React.FC = () => {
 
   const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
 
-  const getWABridgeBaseUrl = () => {
+  const getCandidateUrls = () => {
+    const urls: string[] = [];
     if (import.meta.env.VITE_WA_BRIDGE_URL) {
-      return import.meta.env.VITE_WA_BRIDGE_URL.replace(/\/$/, "");
+      urls.push(`${import.meta.env.VITE_WA_BRIDGE_URL.replace(/\/$/, "")}/status`);
     }
     if (typeof window !== "undefined") {
       const h = window.location.hostname;
       const protocol = window.location.protocol;
-      if (h.startsWith("crm.")) {
-        return `${protocol}//wa-bridge.${h.replace(/^crm\./, "")}`;
-      }
-      if (h.includes("dgt.co.id")) {
-        return `${protocol}//wa-bridge.dgt.co.id`;
-      }
+      const cleanDomain = h.replace(/^(crm|app|dashboard)\./, "");
+      
+      urls.push(`${protocol}//wa-bridge.${cleanDomain}/status`);
+      urls.push(`${protocol}//wabridge.${cleanDomain}/status`);
+      urls.push(`${protocol}//wa.${cleanDomain}/status`);
+      urls.push(`${protocol}//wa-bridge.${h}/status`);
     }
-    return "/wa-bridge";
+    urls.push("/wa-bridge/status");
+    if (typeof window !== "undefined" && window.location.protocol !== "https:") {
+      urls.push(`http://${host}:3001/status`);
+      urls.push(`http://${host}:8001/status`);
+    }
+    return Array.from(new Set(urls));
   };
 
   const { data: waStatus } = useQuery({
     queryKey: ["wa-bridge-status", host],
     queryFn: async () => {
       try {
-        const baseUrl = getWABridgeBaseUrl();
-        // 1. Try EasyPanel domain / relative path first
-        let res = await fetch(`${baseUrl}/status`).catch(() => null);
+        const candidates = getCandidateUrls();
+        let res: Response | null = null;
+        let activeBaseUrl = "/wa-bridge";
 
-        // 2. Fallback to /wa-bridge/status
-        if (!res || !res.ok) {
-          res = await fetch("/wa-bridge/status").catch(() => null);
-        }
-
-        // 3. Fallback to direct HTTP port 3001 only if not on HTTPS
-        if (!res || !res.ok) {
-          if (typeof window !== "undefined" && window.location.protocol !== "https:") {
-            res = await fetch(`http://${host}:3001/status`).catch(() => null);
-          }
+        for (const url of candidates) {
+          try {
+            const r = await fetch(url).catch(() => null);
+            if (r && r.ok) {
+              res = r;
+              activeBaseUrl = url.replace(/\/status$/, "");
+              break;
+            }
+          } catch {}
         }
 
         if (!res || !res.ok) return null;
@@ -72,7 +77,7 @@ export const SettingsPage: React.FC = () => {
             data.qr_code_url = data.qr_code_url.replace("http:", "https:");
           }
         }
-        return data as { status: string; qr_code_url: string };
+        return { ...data, activeBaseUrl } as { status: string; qr_code_url: string; activeBaseUrl: string };
       } catch {
         return null;
       }
@@ -82,8 +87,8 @@ export const SettingsPage: React.FC = () => {
 
   const handleResetWABridge = async () => {
     try {
-      const baseUrl = getWABridgeBaseUrl();
-      let res = await fetch(`${baseUrl}/reset`, { method: "POST" }).catch(() => null);
+      const activeBase = waStatus?.activeBaseUrl || "/wa-bridge";
+      let res = await fetch(`${activeBase}/reset`, { method: "POST" }).catch(() => null);
       if (!res || !res.ok) {
         res = await fetch("/wa-bridge/reset", { method: "POST" }).catch(() => null);
       }
