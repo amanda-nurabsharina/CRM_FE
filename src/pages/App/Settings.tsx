@@ -25,14 +25,37 @@ export const SettingsPage: React.FC = () => {
 
   const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
 
+  const getWABridgeBaseUrl = () => {
+    if (import.meta.env.VITE_WA_BRIDGE_URL) {
+      return import.meta.env.VITE_WA_BRIDGE_URL.replace(/\/$/, "");
+    }
+    if (typeof window !== "undefined") {
+      const h = window.location.hostname;
+      const protocol = window.location.protocol;
+      if (h.startsWith("crm.")) {
+        return `${protocol}//wa-bridge.${h.replace(/^crm\./, "")}`;
+      }
+      if (h.includes("dgt.co.id")) {
+        return `${protocol}//wa-bridge.dgt.co.id`;
+      }
+    }
+    return "/wa-bridge";
+  };
+
   const { data: waStatus } = useQuery({
     queryKey: ["wa-bridge-status", host],
     queryFn: async () => {
       try {
-        // 1. Try relative path /wa-bridge/status first (Safe for HTTPS deployment & Nginx proxy)
-        let res = await fetch("/wa-bridge/status").catch(() => null);
+        const baseUrl = getWABridgeBaseUrl();
+        // 1. Try EasyPanel domain / relative path first
+        let res = await fetch(`${baseUrl}/status`).catch(() => null);
 
-        // 2. Fallback to direct HTTP port 3001 only if not on HTTPS
+        // 2. Fallback to /wa-bridge/status
+        if (!res || !res.ok) {
+          res = await fetch("/wa-bridge/status").catch(() => null);
+        }
+
+        // 3. Fallback to direct HTTP port 3001 only if not on HTTPS
         if (!res || !res.ok) {
           if (typeof window !== "undefined" && window.location.protocol !== "https:") {
             res = await fetch(`http://${host}:3001/status`).catch(() => null);
@@ -59,9 +82,10 @@ export const SettingsPage: React.FC = () => {
 
   const handleResetWABridge = async () => {
     try {
-      let res = await fetch("/wa-bridge/reset", { method: "POST" }).catch(() => null);
+      const baseUrl = getWABridgeBaseUrl();
+      let res = await fetch(`${baseUrl}/reset`, { method: "POST" }).catch(() => null);
       if (!res || !res.ok) {
-        res = await fetch(`http://${host}:3001/reset`, { method: "POST" }).catch(() => null);
+        res = await fetch("/wa-bridge/reset", { method: "POST" }).catch(() => null);
       }
       queryClient.invalidateQueries({ queryKey: ["wa-bridge-status"] });
     } catch (e) {
