@@ -57,6 +57,18 @@ export const SettingsPage: React.FC = () => {
     refetchInterval: 2000,
   });
 
+  const handleResetWABridge = async () => {
+    try {
+      let res = await fetch("/wa-bridge/reset", { method: "POST" }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch(`http://${host}:3001/reset`, { method: "POST" }).catch(() => null);
+      }
+      queryClient.invalidateQueries({ queryKey: ["wa-bridge-status"] });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const updateMutation = useMutation({
     mutationFn: (b: Branch) =>
       crmApi.updateBranch(b.id, {
@@ -261,6 +273,13 @@ export const SettingsPage: React.FC = () => {
                 <p className="text-[11px] text-emerald-700 dark:text-emerald-400 leading-snug">
                   Koneksi socket Baileys aktif di port 3001. Seluruh pesan WA masuk & keluar tersinkronisasi otomatis.
                 </p>
+                <button
+                  onClick={handleResetWABridge}
+                  className="mt-2 px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-xl text-[10px] font-bold inline-flex items-center gap-1 transition-all"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  <span>Unlink & Scan Ulang</span>
+                </button>
               </div>
             ) : waStatus?.qr_code_url ? (
               <div className="p-4 bg-slate-50 dark:bg-zinc-950/80 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-3">
@@ -273,12 +292,28 @@ export const SettingsPage: React.FC = () => {
                     Buka WhatsApp ➔ Perangkat Tertaut ➔ Scan gambar di atas.
                   </p>
                 </div>
+                <button
+                  onClick={handleResetWABridge}
+                  className="px-3 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/30 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition-all"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span>Generate QR Code Baru</span>
+                </button>
               </div>
             ) : (
-              <div className="p-4 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-2 text-xs text-slate-500 dark:text-zinc-400">
+              <div className="p-4 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-3 text-xs text-slate-500 dark:text-zinc-400">
                 <RefreshCw className="h-6 w-6 text-teal-500 mx-auto animate-spin" />
-                <p className="font-semibold text-slate-700 dark:text-zinc-300">Menghubungkan ke Server WA Bridge...</p>
-                <p className="text-[10px]">Pastikan server wa_bridge aktif di http://{host}:3001.</p>
+                <div>
+                  <p className="font-semibold text-slate-700 dark:text-zinc-300">Menghubungkan ke Server WA Bridge...</p>
+                  <p className="text-[10px]">Pastikan server wa_bridge aktif di http://{host}:3001.</p>
+                </div>
+                <button
+                  onClick={handleResetWABridge}
+                  className="px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span>Refresh / Reset Sesi QR</span>
+                </button>
               </div>
             )}
           </div>
