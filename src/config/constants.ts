@@ -1,4 +1,20 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/v1';
-export const ACCESS_TOKEN_KEY = 'crm_access_token';
-export const REFRESH_TOKEN_KEY = 'crm_refresh_token';
-export const USER_DATA_KEY = 'crm_user_data';
+const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host.includes("fourplusone.my.id")) {
+      return "https://crmapi.fourplusone.my.id/v1";
+    }
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return `${window.location.protocol}//api-${host}/v1`;
+    }
+  }
+  return "/v1";
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+export const ACCESS_TOKEN_KEY = "crm_access_token";
+export const REFRESH_TOKEN_KEY = "crm_refresh_token";
+export const USER_DATA_KEY = "crm_user_data";
