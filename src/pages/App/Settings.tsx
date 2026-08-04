@@ -53,31 +53,36 @@ export const SettingsPage: React.FC = () => {
     queryFn: async () => {
       try {
         const candidates = getCandidateUrls();
-        let res: Response | null = null;
+        let resData: any = null;
         let activeBaseUrl = "/wa-bridge";
 
         for (const url of candidates) {
           try {
             const r = await fetch(url).catch(() => null);
             if (r && r.ok) {
-              res = r;
-              activeBaseUrl = url.replace(/\/status$/, "");
-              break;
+              const cType = r.headers.get("content-type") || "";
+              if (cType.includes("application/json")) {
+                const json = await r.json().catch(() => null);
+                if (json && (json.qr_code_url || json.status)) {
+                  resData = json;
+                  activeBaseUrl = url.replace(/\/status$/, "");
+                  break;
+                }
+              }
             }
           } catch {}
         }
 
-        if (!res || !res.ok) return null;
-        const data = await res.json();
-        if (data && data.qr_code_url) {
-          if (data.qr_code_url.includes("localhost")) {
-            data.qr_code_url = data.qr_code_url.replace("localhost", host);
+        if (!resData) return null;
+        if (resData && resData.qr_code_url) {
+          if (resData.qr_code_url.includes("localhost")) {
+            resData.qr_code_url = resData.qr_code_url.replace("localhost", host);
           }
-          if (typeof window !== "undefined" && window.location.protocol === "https:" && data.qr_code_url.startsWith("http:")) {
-            data.qr_code_url = data.qr_code_url.replace("http:", "https:");
+          if (typeof window !== "undefined" && window.location.protocol === "https:" && resData.qr_code_url.startsWith("http:")) {
+            resData.qr_code_url = resData.qr_code_url.replace("http:", "https:");
           }
         }
-        return { ...data, activeBaseUrl } as { status: string; qr_code_url: string; activeBaseUrl: string };
+        return { ...resData, activeBaseUrl } as { status: string; qr_code_url: string; activeBaseUrl: string };
       } catch {
         return null;
       }
