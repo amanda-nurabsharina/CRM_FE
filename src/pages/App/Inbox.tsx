@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Conversation } from "../../api/crmApi";
 import { useAuthStore } from "../../store/useAuthStore";
-import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, PhoneCall, Filter, Volume2, VolumeX, Bell } from "lucide-react";
+import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, PhoneCall, Filter, Volume2, VolumeX, Bell, Plus, UserPlus } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { formatPhoneNumber } from "../../utils/formatters";
 import { playIncomingNotificationSound } from "../../utils/sound";
@@ -13,9 +13,17 @@ export const InboxPage: React.FC = () => {
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [showCallModal, setShowCallModal] = useState(false);
   const [targetBranchId, setTargetBranchId] = useState("");
   const [handoverNote, setHandoverNote] = useState("");
   const [filterBranchId, setFilterBranchId] = useState<string>("ALL");
+
+  // New Chat / Start Conversation Modal State
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [newChatPhone, setNewChatPhone] = useState("");
+  const [newChatName, setNewChatName] = useState("");
+  const [newChatMessage, setNewChatMessage] = useState("");
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   // Notification Sound & Toast States
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -51,27 +59,23 @@ export const InboxPage: React.FC = () => {
     refetchInterval: 1000,
   });
 
-  // Sound Ringer Effect on Incoming Message
+  // Sound Notification Effect for Inbound Messages
   useEffect(() => {
     if (messages.length > 0) {
-      const latestMsg = messages[messages.length - 1];
-      if (
-        prevLastMsgIdRef.current &&
-        latestMsg.id !== prevLastMsgIdRef.current &&
-        latestMsg.direction === "INBOUND"
-      ) {
+      const lastMsg = messages[messages.length - 1];
+      if (prevLastMsgIdRef.current && prevLastMsgIdRef.current !== lastMsg.id && lastMsg.direction === "INBOUND") {
         if (soundEnabled) {
           playIncomingNotificationSound();
         }
         setToastNotification({
-          title: `🔔 Chat Masuk: ${activeConv?.lead?.customer_name || "Pelanggan"}`,
-          body: latestMsg.content,
+          title: `💬 Pesan Baru dari ${activeConv?.lead?.customer_name || "Pelanggan"}`,
+          body: lastMsg.content,
         });
         setTimeout(() => setToastNotification(null), 5000);
       }
-      prevLastMsgIdRef.current = latestMsg.id;
+      prevLastMsgIdRef.current = lastMsg.id;
     }
-  }, [messages, activeConv?.id, soundEnabled]);
+  }, [messages, soundEnabled, activeConv]);
 
   const sendMutation = useMutation({
     mutationFn: ({ convId, text }: { convId: string; text: string }) =>
@@ -79,6 +83,7 @@ export const InboxPage: React.FC = () => {
     onSuccess: () => {
       setMessageText("");
       queryClient.invalidateQueries({ queryKey: ["messages", activeConv?.id] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
 
@@ -87,10 +92,6 @@ export const InboxPage: React.FC = () => {
     onSuccess: () => {
       setSelectedConvId(null);
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-    },
-    onError: (err: any) => {
-      alert("❌ Akses Ditolak: Hanya Admin Pusat yang memiliki wewenang untuk menghapus percakapan WhatsApp.");
     },
   });
 
@@ -99,20 +100,19 @@ export const InboxPage: React.FC = () => {
       crmApi.handoverLead(leadId, branchId, note),
     onSuccess: () => {
       setShowHandoverModal(false);
-      alert("Handover cabang & catatan serah terima berhasil diproses!");
+      setHandoverNote("");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
   });
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim() || !activeConv) return;
-    sendMutation.mutate({ convId: activeConv.id, text: messageText });
+    sendMutation.mutate({ convId: activeConv.id, text: messageText.trim() });
   };
 
-  const handleDeleteChat = (convId: string, name: string) => {
-    if (confirm(`Hapus percakapan WA "${name}" & reset data lead untuk pengujian ulang dari awal?`)) {
+  const handleDeleteChat = (convId: string, customerName: string) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus seluruh riwayat chat dengan "${customerName}"? Tindakan ini tidak dapat dibatalkan.`)) {
       deleteMutation.mutate(convId);
     }
   };
@@ -126,6 +126,59 @@ export const InboxPage: React.FC = () => {
     });
   };
 
+  const handleStartNewChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChatPhone.trim()) return;
+
+    setIsCreatingChat(true);
+    try {
+      const conv = await crmApi.startNewConversation(
+        newChatPhone.trim(),
+        newChatName.trim() || undefined,
+        newChatMessage.trim() || undefined
+      );
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setShowNewChatModal(false);
+      setNewChatPhone("");
+      setNewChatName("");
+      setNewChatMessage("");
+      if (conv?.id) {
+        setSelectedConvId(conv.id);
+      }
+    } catch (err: any) {
+      alert("Gagal memulai pesan baru: " + (err?.response?.data?.message || err.message));
+    } finally {
+      setIsCreatingChat(false);
+    }
+  };
+
+  const handleDirectWhatsAppCall = (phone?: string, name?: string) => {
+    if (!phone) return;
+    let cleanPhone = phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("0")) cleanPhone = "62" + cleanPhone.slice(1);
+
+    const customerName = name || activeConv?.lead?.customer_name || "Pelanggan WhatsApp";
+
+    // 1. Open WhatsApp Web directly in new window
+    window.open(`https://web.whatsapp.com/send?phone=${cleanPhone}`, "_blank");
+
+    // 2. Trigger softphone ringing notification overlay in CRM
+    window.dispatchEvent(
+      new CustomEvent("trigger-voip-call", {
+        detail: {
+          sipLine: cleanPhone,
+          name: customerName,
+          channel: "WHATSAPP",
+          provider: "WHATSAPP_WEB_DIRECT",
+          direction: "OUTBOUND",
+          providerCallId: `WACALL-${Date.now()}`,
+        },
+      })
+    );
+
+    setShowCallModal(false);
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors">
       {/* Left List of Conversations */}
@@ -136,6 +189,14 @@ export const InboxPage: React.FC = () => {
               <MessageSquare className="h-5 w-5 text-teal-500 dark:text-teal-400" />
               <span>WhatsApp Inbox</span>
             </h2>
+            <button
+              onClick={() => setShowNewChatModal(true)}
+              className="px-2.5 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 shadow-sm transition-transform active:scale-95"
+              title="Kirim Pesan WhatsApp Baru ke Nomor Telepon Mana Saja"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Pesan Baru</span>
+            </button>
           </div>
 
           {/* Branch Filter Selector */}
@@ -167,8 +228,15 @@ export const InboxPage: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800/50">
           {convs.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400 dark:text-zinc-500">
-              Belum ada percakapan masuk. Kirim pesan WA ke HP terhubung untuk tes chat.
+            <div className="p-6 text-center text-xs text-slate-400 dark:text-zinc-500 space-y-2">
+              <p>Belum ada percakapan masuk.</p>
+              <button
+                onClick={() => setShowNewChatModal(true)}
+                className="px-3 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 rounded-xl font-bold inline-flex items-center gap-1"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Mulai Chat Baru</span>
+              </button>
             </div>
           ) : (
             convs.map((conv) => {
@@ -208,26 +276,12 @@ export const InboxPage: React.FC = () => {
                       </div>
 
                       {conv.lead?.handover_note && (
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium truncate mt-1.5 flex items-center gap-1 bg-amber-500/10 dark:bg-amber-500/20 px-1.5 py-0.5 rounded-md border border-amber-500/20">
-                          <ArrowRightLeft className="h-3 w-3 shrink-0 text-amber-500" />
-                          <span className="truncate">Note: {conv.lead.handover_note}</span>
-                        </p>
+                        <div className="mt-1.5 p-1 px-2 bg-amber-500/10 border border-amber-500/20 rounded text-[10px] text-amber-700 dark:text-amber-300 truncate italic">
+                          <span>⇄ Note: {conv.lead.handover_note}</span>
+                        </div>
                       )}
                     </div>
                   </button>
-
-                  {user?.role === "ADMIN_PUSAT" && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteChat(conv.id, customerName);
-                      }}
-                      title="Hapus Chat Testing"
-                      className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
                 </div>
               );
             })
@@ -238,23 +292,22 @@ export const InboxPage: React.FC = () => {
       {/* Full Width Chat View */}
       {activeConv ? (
         <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950">
-          {/* Responsive Precision Aligned Chat Header */}
-          <div className="min-h-16 py-2.5 px-4 sm:px-6 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between gap-3 bg-slate-50/80 dark:bg-zinc-900/50 shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-sm">
+          <div className="min-h-16 py-2 px-3 sm:px-5 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between gap-2 bg-slate-50/80 dark:bg-zinc-900/50 shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-sm">
                 {activeConv.lead?.customer_name?.slice(0, 2).toUpperCase() || "WA"}
               </div>
               <div className="min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-100 truncate leading-snug">{activeConv.lead?.customer_name || "WhatsApp Customer"}</h3>
-                  <Badge variant="indigo" className="text-[10px] py-0.5 px-2 font-bold shrink-0">
+                  <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-zinc-100 truncate leading-tight">{activeConv.lead?.customer_name || "WhatsApp Customer"}</h3>
+                  <Badge variant="indigo" className="text-[9px] py-0.5 px-1.5 font-bold shrink-0">
                     {activeConv.lead?.status || "NEW"}
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                   <span>{formatPhoneNumber(activeConv.lead?.phone_number)}</span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-semibold truncate">
+                  <span className="flex items-center gap-0.5 text-teal-600 dark:text-teal-400 font-semibold truncate">
                     <MapPin className="h-3 w-3 shrink-0 text-teal-500" />
                     <span className="truncate">{activeConv.lead?.branch?.name || activeConv.lead?.domicile || "DGT Pusat"}</span>
                   </span>
@@ -262,55 +315,57 @@ export const InboxPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Compact Efficient Action Buttons & Status Badge */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => handleDirectWhatsAppCall(activeConv.lead?.phone_number, activeConv.lead?.customer_name)}
+                className="h-8.5 w-8.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 border border-emerald-500/50 rounded-xl flex items-center justify-center transition-all shadow-sm active:scale-95"
+                title="Panggil WA Direct (Softphone)"
+              >
+                <PhoneCall className="h-4 w-4 text-emerald-500 animate-pulse" />
+              </button>
+
               <button
                 onClick={() => setShowHandoverModal(true)}
-                className="h-8.5 px-3 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
-                title="Pindah Cabang & Catatan Handover"
+                className="h-8.5 w-8.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 rounded-xl flex items-center justify-center transition-all shadow-sm active:scale-95"
+                title="Handover Cabang & Catatan"
               >
-                <ArrowRightLeft className="h-3.5 w-3.5 shrink-0 text-teal-500" />
-                <span>Handover</span>
+                <ArrowRightLeft className="h-4 w-4 text-teal-500" />
               </button>
 
               {user?.role === "ADMIN_PUSAT" && (
                 <button
                   onClick={() => handleDeleteChat(activeConv.id, activeConv.lead?.customer_name || "Customer")}
                   disabled={deleteMutation.isPending}
-                  className="h-8.5 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0"
-                  title="Hapus Percakapan (Wewenang Khusus Admin Pusat)"
+                  className="h-8.5 w-8.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl flex items-center justify-center transition-all shadow-sm active:scale-95"
+                  title="Hapus Chat (Admin Pusat)"
                 >
-                  <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                  <span>Hapus Chat</span>
+                  <Trash2 className="h-4 w-4 text-red-500" />
                 </button>
               )}
 
-              {/* Sound Ringer Toggle & Test Button */}
               <button
                 onClick={() => {
                   const nextState = !soundEnabled;
                   setSoundEnabled(nextState);
                   if (nextState) playIncomingNotificationSound();
                 }}
-                className={`h-8.5 px-2.5 border rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm shrink-0 ${
+                className={`h-8.5 w-8.5 border rounded-xl flex items-center justify-center transition-all shadow-sm active:scale-95 ${
                   soundEnabled
-                    ? "bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border-teal-500/30"
-                    : "bg-slate-200 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border-slate-300 dark:border-zinc-700"
+                    ? "bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30"
+                    : "bg-slate-200 dark:bg-zinc-800 border-slate-300 dark:border-zinc-700"
                 }`}
-                title={soundEnabled ? "Dering Dering Chat Masuk Aktif (Klik untuk Matikan / Tes Suara Dering)" : "Dering Matikan (Klik untuk Aktifkan Dering)"}
+                title={soundEnabled ? "Dering Chat Masuk Aktif" : "Dering Matikan"}
               >
-                {soundEnabled ? <Volume2 className="h-3.5 w-3.5 text-teal-500" /> : <VolumeX className="h-3.5 w-3.5 text-slate-400" />}
-                <span>{soundEnabled ? "Dering ON" : "Mute"}</span>
+                {soundEnabled ? <Volume2 className="h-4 w-4 text-teal-500" /> : <VolumeX className="h-4 w-4 text-slate-400" />}
               </button>
 
-              <div className="h-8.5 px-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm">
+              <div className="h-8.5 px-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[10px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm" title="WhatsApp API Connected">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                 <span>Online</span>
               </div>
             </div>
           </div>
 
-          {/* Prominent Handover Note Banner */}
           {activeConv.lead?.handover_note && (
             <div className="px-4 py-2 bg-amber-500/10 dark:bg-amber-500/15 border-b border-amber-500/30 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 font-medium shrink-0 animate-fadeIn">
               <div className="flex items-center gap-2 min-w-0">
@@ -520,6 +575,81 @@ export const InboxPage: React.FC = () => {
         </div>
       )}
 
+      {/* WHATSAPP CALL OPTIONS MODAL */}
+      {showCallModal && activeConv && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold">
+                  <PhoneCall className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Panggil Pelanggan WhatsApp</h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
+                    {formatPhoneNumber(activeConv.lead?.phone_number)}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowCallModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed font-medium">
+              Pilih metode panggilan yang ingin Anda gunakan untuk menghubungi <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{activeConv.lead?.customer_name || "Pelanggan"}</span>:
+            </p>
+
+            <div className="space-y-3">
+              {/* Option 1: Direct WhatsApp Desktop Call */}
+              <button
+                onClick={() => handleDirectWhatsAppCall(activeConv.lead?.phone_number)}
+                className="w-full p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-left flex items-start gap-3 transition-all group"
+              >
+                <div className="h-9 w-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    <span>1. Panggil via WhatsApp Desktop / App</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                    Memicu panggilan langsung di aplikasi WhatsApp Desktop / Web WhatsApp yang terinstall di perangkat Anda.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: WebRTC Voice Call (Softphone & WA Link) */}
+              <button
+                onClick={() => handleDirectWhatsAppCall(activeConv.lead?.phone_number, activeConv.lead?.customer_name)}
+                className="w-full p-4 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 rounded-2xl text-left flex items-start gap-3 transition-all group"
+              >
+                <div className="h-9 w-9 rounded-xl bg-teal-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                  <Volume2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-teal-700 dark:text-teal-300 flex items-center gap-1.5">
+                    <span>2. WebRTC Softphone Call (Web Engine)</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                    Buka Softphone panggilan audio di CRM & hubungkan voice stream langsung di browser Web.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-zinc-800">
+              <button
+                onClick={() => setShowCallModal(false)}
+                className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-zinc-700"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating Toast Notification for Incoming WhatsApp Message */}
       {toastNotification && (
         <div className="fixed bottom-5 right-5 z-50 p-4 bg-slate-900 text-white rounded-2xl shadow-2xl border border-teal-500/50 flex items-start gap-3 max-w-sm">
@@ -533,6 +663,83 @@ export const InboxPage: React.FC = () => {
           <button onClick={() => setToastNotification(null)} className="text-slate-400 hover:text-white">
             <X className="h-4 w-4" />
           </button>
+        </div>
+      )}
+
+      {/* New Chat / Start Conversation Modal */}
+      {showNewChatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-2xl text-slate-900 dark:text-white space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
+              <h3 className="text-sm font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-2">
+                <UserPlus className="h-4.5 w-4.5" />
+                <span>Kirim Pesan WhatsApp Baru</span>
+              </h3>
+              <button onClick={() => setShowNewChatModal(false)} className="text-slate-400 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleStartNewChat} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-extrabold text-slate-700 dark:text-zinc-300 mb-1">
+                  Nomor HP WhatsApp Target: <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newChatPhone}
+                  onChange={(e) => setNewChatPhone(e.target.value)}
+                  placeholder="Misal: 081298765432 atau 6281298765432"
+                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs font-mono font-bold focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-700 dark:text-zinc-300 mb-1">
+                  Nama Pelanggan (Opsional):
+                </label>
+                <input
+                  type="text"
+                  value={newChatName}
+                  onChange={(e) => setNewChatName(e.target.value)}
+                  placeholder="Misal: Budi Santoso"
+                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-700 dark:text-zinc-300 mb-1">
+                  Pesan Pertama:
+                </label>
+                <textarea
+                  rows={3}
+                  value={newChatMessage}
+                  onChange={(e) => setNewChatMessage(e.target.value)}
+                  placeholder="Halo, salam dari DGT WhatsApp CRM..."
+                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-xs focus:outline-none focus:border-teal-500 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setShowNewChatModal(false)}
+                  className="px-4 py-2 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-xs font-bold hover:bg-slate-300 dark:hover:bg-zinc-700"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingChat || !newChatPhone.trim()}
+                  className="px-5 py-2 bg-teal-500 hover:bg-teal-600 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 disabled:opacity-50 shadow-md shadow-teal-500/20"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span>{isCreatingChat ? "Mengirim..." : "Kirim Pesan WABA"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

@@ -7,9 +7,6 @@ const getApiBaseUrl = (): string => {
     if (host.includes("fourplusone.my.id")) {
       return "https://crmapi.fourplusone.my.id/v1";
     }
-    if (host !== "localhost" && host !== "127.0.0.1") {
-      return `${window.location.protocol}//api-${host}/v1`;
-    }
   }
   return "/v1";
 };

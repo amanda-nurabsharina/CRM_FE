@@ -23,13 +23,22 @@ export const SettingsPage: React.FC = () => {
     queryFn: () => crmApi.getUsers(),
   });
 
+  const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
+
   const { data: waStatus } = useQuery({
-    queryKey: ["wa-bridge-status"],
+    queryKey: ["wa-bridge-status", host],
     queryFn: async () => {
       try {
-        const res = await fetch("http://localhost:3001/status");
-        if (!res.ok) return null;
-        return (await res.json()) as { status: string; qr_code_url: string };
+        let res = await fetch(`http://${host}:3001/status`).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch("/wa-bridge/status").catch(() => null);
+        }
+        if (!res || !res.ok) return null;
+        const data = await res.json();
+        if (data && data.qr_code_url && data.qr_code_url.includes("localhost")) {
+          data.qr_code_url = data.qr_code_url.replace("localhost", host);
+        }
+        return data as { status: string; qr_code_url: string };
       } catch {
         return null;
       }
@@ -152,21 +161,7 @@ export const SettingsPage: React.FC = () => {
                         <Phone className="h-3.5 w-3.5 text-teal-500 shrink-0" />
                         <span>WA: +{branch.wa_phone_number || "Belum diatur"}</span>
                       </p>
-                      <div className="flex items-center justify-between pt-0.5">
-                        <p className="flex items-center gap-1.5 font-mono">
-                          <PhoneCall className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                          <span>VoIP SIP: {branch.voip_phone_number || "Belum diatur"}</span>
-                        </p>
-                        <button
-                          onClick={() => crmApi.testVoIPCall(branch.voip_phone_number)}
-                          className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1"
-                          title="Simulasikan Panggilan Telepon VoIP Masuk"
-                        >
-                          <PhoneCall className="h-3 w-3" />
-                          <span>Tes Panggilan</span>
-                        </button>
-                      </div>
-                      <p className="flex items-start gap-1.5 text-[11px] leading-tight">
+                      <p className="flex items-start gap-1.5 text-[11px] leading-tight pt-1">
                         <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0 mt-0.5" />
                         <span className="text-slate-700 dark:text-zinc-300">{branch.coverage_areas || "Tidak ada coverage area"}</span>
                       </p>
@@ -272,7 +267,7 @@ export const SettingsPage: React.FC = () => {
               <div className="p-4 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-2 text-xs text-slate-500 dark:text-zinc-400">
                 <RefreshCw className="h-6 w-6 text-teal-500 mx-auto animate-spin" />
                 <p className="font-semibold text-slate-700 dark:text-zinc-300">Menghubungkan ke Server WA Bridge...</p>
-                <p className="text-[10px]">Pastikan server wa_bridge aktif di http://localhost:3001.</p>
+                <p className="text-[10px]">Pastikan server wa_bridge aktif di http://{host}:3001.</p>
               </div>
             )}
           </div>
@@ -336,17 +331,6 @@ export const SettingsPage: React.FC = () => {
                   onChange={(e) => setEditingBranch({ ...editingBranch, wa_phone_number: e.target.value })}
                   placeholder="628110001000"
                   className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-teal-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-500 dark:text-zinc-400 mb-1 font-semibold">Nomor Telepon VoIP SIP Line Cabang:</label>
-                <input
-                  type="text"
-                  value={editingBranch.voip_phone_number || ""}
-                  onChange={(e) => setEditingBranch({ ...editingBranch, voip_phone_number: e.target.value })}
-                  placeholder="021-5500-888 / SIP Line #101"
-                  className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 text-slate-800 dark:text-zinc-100 focus:outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 

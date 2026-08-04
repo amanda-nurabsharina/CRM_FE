@@ -24,6 +24,11 @@ export default defineConfig({
         target: "http://localhost:8000",
         changeOrigin: true,
       },
+      "/wa-bridge": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/wa-bridge/, ""),
+      },
     },
   },
 });

@@ -213,6 +213,11 @@ export const crmApi = {
     return res.data;
   },
 
+  startNewConversation: async (phone: string, name?: string, text?: string) => {
+    const res = await apiClient.post("conversations/new", { json: { phone, name, text } }).json<{ data: Conversation }>();
+    return res.data;
+  },
+
   getMessages: async (convId: string) => {
     const res = await apiClient.get(`conversations/${convId}/messages`).json<{ data: Message[] }>();
     return res.data;
@@ -252,7 +257,7 @@ export const crmApi = {
     const formData = new FormData();
     formData.append("file", file);
     const token = localStorage.getItem("crm_token");
-    const res = await fetch("http://localhost:8000/v1/upload", {
+    const res = await fetch("/v1/upload", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
@@ -341,4 +346,57 @@ export const crmApi = {
     const res = await apiClient.delete(`travelers/${id}`).json<{ message: string }>();
     return res;
   },
+
+  getCalls: async () => {
+    const res = await apiClient.get("calls").json<{ data: CallLog[] }>();
+    return res.data;
+  },
+
+  getCallByID: async (id: string) => {
+    const res = await apiClient.get(`calls/${id}`).json<{ data: CallLog }>();
+    return res.data;
+  },
+
+  transferCall: async (id: string, data: { target_agent_id?: string; target_branch_id?: string; note?: string }) => {
+    const res = await apiClient.post(`calls/${id}/transfer`, { json: data }).json<{ data: CallLog }>();
+    return res.data;
+  },
+
+  triggerVoiceWebhook: async (data: { provider?: string; provider_call_id?: string; channel?: string; direction?: string; caller_number: string; destination_number?: string; status?: string; duration_seconds?: number; recording_url?: string }) => {
+    const res = await apiClient.post("webhooks/voice", { json: data }).json<{ data: CallLog }>();
+    return res.data;
+  },
 };
+
+export interface CallLog {
+  id: string;
+  call_uuid: string;
+  provider: string;
+  provider_call_id: string;
+  channel: "WHATSAPP" | "PSTN";
+  direction: "INBOUND" | "OUTBOUND";
+  caller_number: string;
+  destination_number?: string;
+  agent_id?: string;
+  agent?: User;
+  customer_id?: string;
+  customer?: Lead;
+  branch_id?: string;
+  branch?: Branch;
+  status: "RINGING" | "ANSWERED" | "COMPLETED" | "FAILED" | "CANCELLED" | "TRANSFERRED";
+  started_at: string;
+  answered_at?: string;
+  ended_at?: string;
+  duration_seconds: number;
+  recording_url?: string;
+  events?: CallEvent[];
+  created_at: string;
+}
+
+export interface CallEvent {
+  id: string;
+  call_id: string;
+  event_type: string;
+  event_at: string;
+  metadata: string;
+}
