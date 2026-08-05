@@ -86,7 +86,10 @@ export const SettingsPage: React.FC = () => {
     refetchInterval: 2000,
   });
 
+  const [isResettingWA, setIsResettingWA] = useState(false);
+
   const handleResetWABridge = async () => {
+    setIsResettingWA(true);
     try {
       const activeBase = waStatus?.activeBaseUrl || "/wa-bridge";
       let res = await fetch(`${activeBase}/reset`, { method: "POST" }).catch(() => null);
@@ -96,6 +99,10 @@ export const SettingsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["wa-bridge-status"] });
     } catch (e) {
       console.error(e);
+    } finally {
+      setTimeout(() => {
+        setIsResettingWA(false);
+      }, 1500);
     }
   };
 
@@ -343,10 +350,11 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <button
                   onClick={handleResetWABridge}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-extrabold inline-flex items-center gap-2 shadow-md transition-all active:scale-95"
+                  disabled={isResettingWA}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-extrabold inline-flex items-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-75"
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Generate & Scan QR Code Baru</span>
+                  <RefreshCw className={`h-4 w-4 ${isResettingWA ? "animate-spin" : ""}`} />
+                  <span>{isResettingWA ? "Menyiapkan QR Code Baru..." : "Generate & Scan QR Code Baru"}</span>
                 </button>
               </div>
             ) : (
