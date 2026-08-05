@@ -29,6 +29,12 @@ export const SettingsPage: React.FC = () => {
     const urls: string[] = ["/wa-bridge/status"];
     if (import.meta.env.VITE_WA_BRIDGE_URL) {
       urls.push(`${import.meta.env.VITE_WA_BRIDGE_URL.replace(/\/$/, "")}/status`);
+      urls.push(import.meta.env.VITE_WA_BRIDGE_URL);
+    }
+    if (import.meta.env.VITE_API_URL) {
+      const apiBase = import.meta.env.VITE_API_URL.replace(/\/v1\/?$/, "");
+      urls.push(`${apiBase}/wa-bridge/status`);
+      urls.push(`${apiBase}/status`);
     }
     if (typeof window !== "undefined") {
       const h = window.location.hostname;
@@ -36,9 +42,10 @@ export const SettingsPage: React.FC = () => {
       if (protocol !== "https:" && (h === "localhost" || h === "127.0.0.1")) {
         urls.push(`http://${h}:3001/status`);
       } else if (h !== "localhost" && h !== "127.0.0.1") {
-        const cleanDomain = h.replace(/^(crm|app|dashboard)\./, "");
+        const cleanDomain = h.replace(/^(crm|app|dashboard|poc_crm|poc-crm)\./, "");
         urls.push(`${protocol}//wa-bridge.${cleanDomain}/status`);
         urls.push(`${protocol}//wabridge.${cleanDomain}/status`);
+        urls.push(`${protocol}//wa.${cleanDomain}/status`);
       }
     }
     return Array.from(new Set(urls));
