@@ -340,21 +340,29 @@ export const SettingsPage: React.FC = () => {
             ) : waStatus ? (
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center space-y-3">
                 <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 mb-1">
-                  <QrCode className="h-5 w-5" />
+                  {waStatus.status === "CONNECTING" || isResettingWA ? (
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <QrCode className="h-5 w-5" />
+                  )}
                 </div>
                 <div>
-                  <h4 className="text-xs font-extrabold text-amber-800 dark:text-amber-300">WhatsApp Belum Terhubung (Disconnected)</h4>
+                  <h4 className="text-xs font-extrabold text-amber-800 dark:text-amber-300">
+                    {waStatus.status === "CONNECTING" || isResettingWA ? "Sedang Menyiapkan QR Code Baru..." : "WhatsApp Belum Terhubung (Disconnected)"}
+                  </h4>
                   <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug mt-0.5">
-                    Klik tombol di bawah untuk membuat QR Code baru dan menghubungkan WhatsApp Anda.
+                    {waStatus.status === "CONNECTING" || isResettingWA
+                      ? "Server sedang memproses socket Baileys. QR Code akan muncul dalam beberapa detik."
+                      : "Klik tombol di bawah untuk membuat QR Code baru dan menghubungkan WhatsApp Anda."}
                   </p>
                 </div>
                 <button
                   onClick={handleResetWABridge}
-                  disabled={isResettingWA}
+                  disabled={isResettingWA || waStatus.status === "CONNECTING"}
                   className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-extrabold inline-flex items-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-75"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isResettingWA ? "animate-spin" : ""}`} />
-                  <span>{isResettingWA ? "Menyiapkan QR Code Baru..." : "Generate & Scan QR Code Baru"}</span>
+                  <RefreshCw className={`h-4 w-4 ${isResettingWA || waStatus.status === "CONNECTING" ? "animate-spin" : ""}`} />
+                  <span>{isResettingWA || waStatus.status === "CONNECTING" ? "Menyiapkan QR Code Baru..." : "Generate & Scan QR Code Baru"}</span>
                 </button>
               </div>
             ) : (
