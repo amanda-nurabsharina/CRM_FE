@@ -32,11 +32,13 @@ export const SettingsPage: React.FC = () => {
     }
     if (typeof window !== "undefined") {
       const h = window.location.hostname;
-      urls.push(`http://${h}:3001/status`);
-      if (h !== "localhost" && h !== "127.0.0.1") {
-        const protocol = window.location.protocol;
+      const protocol = window.location.protocol;
+      if (protocol !== "https:" && (h === "localhost" || h === "127.0.0.1")) {
+        urls.push(`http://${h}:3001/status`);
+      } else if (h !== "localhost" && h !== "127.0.0.1") {
         const cleanDomain = h.replace(/^(crm|app|dashboard)\./, "");
         urls.push(`${protocol}//wa-bridge.${cleanDomain}/status`);
+        urls.push(`${protocol}//wabridge.${cleanDomain}/status`);
       }
     }
     return Array.from(new Set(urls));
@@ -328,12 +330,31 @@ export const SettingsPage: React.FC = () => {
                   <span>Generate QR Code Baru</span>
                 </button>
               </div>
+            ) : waStatus ? (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center space-y-3">
+                <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 mb-1">
+                  <QrCode className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-amber-800 dark:text-amber-300">WhatsApp Belum Terhubung (Disconnected)</h4>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug mt-0.5">
+                    Klik tombol di bawah untuk membuat QR Code baru dan menghubungkan WhatsApp Anda.
+                  </p>
+                </div>
+                <button
+                  onClick={handleResetWABridge}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-extrabold inline-flex items-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Generate & Scan QR Code Baru</span>
+                </button>
+              </div>
             ) : (
               <div className="p-4 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-3 text-xs text-slate-500 dark:text-zinc-400">
                 <RefreshCw className="h-6 w-6 text-teal-500 mx-auto animate-spin" />
                 <div>
                   <p className="font-semibold text-slate-700 dark:text-zinc-300">Menghubungkan ke Server WA Bridge...</p>
-                  <p className="text-[10px]">Pastikan server wa_bridge aktif di http://{host}:3001.</p>
+                  <p className="text-[10px]">Menghubungkan ke endpoint server WA Bridge...</p>
                 </div>
                 <button
                   onClick={handleResetWABridge}
