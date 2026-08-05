@@ -26,15 +26,16 @@ export const SettingsPage: React.FC = () => {
   const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
 
   const getCandidateUrls = () => {
-    const urls: string[] = ["/wa-bridge/status"];
+    const urls: string[] = [];
+    if (import.meta.env.VITE_API_URL) {
+      const apiBase = import.meta.env.VITE_API_URL.replace(/\/$/, "");
+      urls.push(`${apiBase}/wa/status`);
+    }
+    urls.push("/wa-bridge/status");
+    urls.push("/v1/wa/status");
     if (import.meta.env.VITE_WA_BRIDGE_URL) {
       urls.push(`${import.meta.env.VITE_WA_BRIDGE_URL.replace(/\/$/, "")}/status`);
       urls.push(import.meta.env.VITE_WA_BRIDGE_URL);
-    }
-    if (import.meta.env.VITE_API_URL) {
-      const apiBase = import.meta.env.VITE_API_URL.replace(/\/v1\/?$/, "");
-      urls.push(`${apiBase}/wa-bridge/status`);
-      urls.push(`${apiBase}/status`);
     }
     if (typeof window !== "undefined") {
       const h = window.location.hostname;
@@ -68,7 +69,7 @@ export const SettingsPage: React.FC = () => {
                 const json = await r.json().catch(() => null);
                 if (json && (json.qr_code_url || json.status)) {
                   resData = json;
-                  activeBaseUrl = url.replace(/\/status$/, "");
+                  activeBaseUrl = url.replace(/\/(wa\/status|status)$/, "");
                   break;
                 }
               }
@@ -98,8 +99,12 @@ export const SettingsPage: React.FC = () => {
   const handleResetWABridge = async () => {
     setIsResettingWA(true);
     try {
-      const activeBase = waStatus?.activeBaseUrl || "/wa-bridge";
-      let res = await fetch(`${activeBase}/reset`, { method: "POST" }).catch(() => null);
+      const apiBase = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, "") : "/v1";
+      let res = await fetch(`${apiBase}/wa/reset`, { method: "POST" }).catch(() => null);
+      if (!res || !res.ok) {
+        const activeBase = waStatus?.activeBaseUrl || "/wa-bridge";
+        res = await fetch(`${activeBase}/reset`, { method: "POST" }).catch(() => null);
+      }
       if (!res || !res.ok) {
         res = await fetch("/wa-bridge/reset", { method: "POST" }).catch(() => null);
       }
