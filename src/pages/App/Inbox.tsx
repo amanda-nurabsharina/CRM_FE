@@ -42,7 +42,9 @@ export const InboxPage: React.FC = () => {
     queryKey: ["wa-bridge-status"],
     queryFn: async () => {
       try {
-        return await ky.get("/wa-bridge/status").json<{ status: string; is_syncing_history?: boolean; synced_count?: number }>();
+        const res = await fetch("/wa-bridge/status");
+        if (!res.ok) return null;
+        return (await res.json()) as { status: string; is_syncing_history?: boolean; synced_count?: number };
       } catch (e) {
         return null;
       }
@@ -53,7 +55,7 @@ export const InboxPage: React.FC = () => {
   const handleResetSession = async () => {
     if (confirm("Apakah Anda yakin ingin mengimpor ulang / scan QR WhatsApp baru?")) {
       try {
-        await ky.post("/wa-bridge/reset").json();
+        await fetch("/wa-bridge/reset", { method: "POST" });
         alert("Sesi WhatsApp di-reset. Silakan scan QR code baru untuk menyinkronkan ulang!");
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
       } catch (err: any) {
@@ -552,11 +554,11 @@ export const InboxPage: React.FC = () => {
                       <span>{new Date(msg.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                       {isOutbound && (
                         msg.is_read || msg.status === "READ" ? (
-                          <CheckCheck className="h-3.5 w-3.5 text-sky-400 font-bold" title="Dibaca (Read)" />
+                          <span title="Dibaca (Read)"><CheckCheck className="h-3.5 w-3.5 text-sky-400 font-bold" /></span>
                         ) : msg.status === "DELIVERED" ? (
-                          <CheckCheck className="h-3.5 w-3.5 text-slate-400" title="Tersampaikan (Delivered)" />
+                          <span title="Tersampaikan (Delivered)"><CheckCheck className="h-3.5 w-3.5 text-slate-400" /></span>
                         ) : (
-                          <Check className="h-3.5 w-3.5 text-slate-400" title="Terkirim (Sent)" />
+                          <span title="Terkirim (Sent)"><Check className="h-3.5 w-3.5 text-slate-400" /></span>
                         )
                       )}
                     </div>
