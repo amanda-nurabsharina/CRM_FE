@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { crmApi, Conversation } from "../../api/crmApi";
 import { useAuthStore } from "../../store/useAuthStore";
-import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, X, Building2, User, Phone, PhoneCall, Filter, Volume2, VolumeX, Bell, Plus, UserPlus } from "lucide-react";
+import { MessageSquare, Send, MapPin, Trash2, ArrowRightLeft, Check, CheckCheck, X, Building2, User, Phone, PhoneCall, Filter, Volume2, VolumeX, Bell, Plus, UserPlus, RefreshCw } from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { formatPhoneNumber } from "../../utils/formatters";
 import { playIncomingNotificationSound } from "../../utils/sound";
@@ -28,15 +28,39 @@ export const InboxPage: React.FC = () => {
   // Notification Sound & Toast States
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [toastNotification, setToastNotification] = useState<{ title: string; body: string } | null>(null);
-  const prevLastMsgIdRef = useRef<string | null>(null);
+  const notifiedMsgIdsRef = useRef<Set<string>>(new Set());
 
   const effectiveBranchId = user?.role !== "ADMIN_PUSAT" && user?.branch_id ? user.branch_id : (filterBranchId === "ALL" ? undefined : filterBranchId);
 
-  const { data: convs = [] } = useQuery({
+  const { data: convs = [], isLoading: isLoadingConvs, isFetching: isFetchingConvs } = useQuery({
     queryKey: ["conversations", effectiveBranchId],
     queryFn: () => crmApi.getConversations(effectiveBranchId),
     refetchInterval: 1000,
   });
+
+  const { data: bridgeStatus } = useQuery({
+    queryKey: ["wa-bridge-status"],
+    queryFn: async () => {
+      try {
+        return await ky.get("/wa-bridge/status").json<{ status: string; is_syncing_history?: boolean; synced_count?: number }>();
+      } catch (e) {
+        return null;
+      }
+    },
+    refetchInterval: 2000,
+  });
+
+  const handleResetSession = async () => {
+    if (confirm("Apakah Anda yakin ingin mengimpor ulang / scan QR WhatsApp baru?")) {
+      try {
+        await ky.post("/wa-bridge/reset").json();
+        alert("Sesi WhatsApp di-reset. Silakan scan QR code baru untuk menyinkronkan ulang!");
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      } catch (err: any) {
+        alert("Gagal reset sesi: " + err.message);
+      }
+    }
+  };
 
   const { data: branches = [] } = useQuery({
     queryKey: ["branches"],
@@ -52,6 +76,23 @@ export const InboxPage: React.FC = () => {
     }
   }, [activeConv?.id, activeConv?.lead?.branch_id]);
 
+  const [liveAvatar, setLiveAvatar] = useState<string | null>(null);
+  const activePhone = activeConv?.lead?.phone_number;
+
+  useEffect(() => {
+    setLiveAvatar(activeConv?.lead?.avatar_url || null);
+    if (activePhone && !activeConv?.lead?.avatar_url) {
+      fetch(`/wa-bridge/avatar?phone=${activePhone}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.avatar_url) {
+            setLiveAvatar(data.avatar_url);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeConv?.id, activePhone, activeConv?.lead?.avatar_url]);
+
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", activeConv?.id],
     queryFn: () => (activeConv ? crmApi.getMessages(activeConv.id) : Promise.resolve([])),
@@ -59,23 +100,40 @@ export const InboxPage: React.FC = () => {
     refetchInterval: 1000,
   });
 
-  // Sound Notification Effect for Inbound Messages
+  const isFirstLoadRef = useRef<Record<string, boolean>>({});
+
+  // Sound Notification Effect for Inbound Messages (Only trigger for brand new live incoming messages)
   useEffect(() => {
-    if (messages.length > 0) {
-      const lastMsg = messages[messages.length - 1];
-      if (prevLastMsgIdRef.current && prevLastMsgIdRef.current !== lastMsg.id && lastMsg.direction === "INBOUND") {
-        if (soundEnabled) {
-          playIncomingNotificationSound();
-        }
-        setToastNotification({
-          title: `💬 Pesan Baru dari ${activeConv?.lead?.customer_name || "Pelanggan"}`,
-          body: lastMsg.content,
-        });
-        setTimeout(() => setToastNotification(null), 5000);
-      }
-      prevLastMsgIdRef.current = lastMsg.id;
+    if (!activeConv || messages.length === 0) return;
+
+    const convId = activeConv.id;
+
+    // If this is the first time opening/loading this conversation, mark all existing messages as notified without sound
+    if (!isFirstLoadRef.current[convId]) {
+      messages.forEach((m) => notifiedMsgIdsRef.current.add(m.id));
+      isFirstLoadRef.current[convId] = true;
+      return;
     }
-  }, [messages, soundEnabled, activeConv]);
+
+    // Check for brand new live incoming messages that arrived after opening the chat
+    const brandNewInbound = messages.filter(
+      (m) => m.direction === "INBOUND" && !notifiedMsgIdsRef.current.has(m.id)
+    );
+
+    if (brandNewInbound.length > 0) {
+      brandNewInbound.forEach((m) => notifiedMsgIdsRef.current.add(m.id));
+      const latest = brandNewInbound[brandNewInbound.length - 1];
+
+      if (soundEnabled) {
+        playIncomingNotificationSound();
+      }
+      setToastNotification({
+        title: `💬 Pesan Baru dari ${activeConv.lead?.customer_name || "Pelanggan"}`,
+        body: latest.content,
+      });
+      setTimeout(() => setToastNotification(null), 5000);
+    }
+  }, [messages, soundEnabled, activeConv?.id]);
 
   const sendMutation = useMutation({
     mutationFn: ({ convId, text }: { convId: string; text: string }) =>
@@ -128,7 +186,14 @@ export const InboxPage: React.FC = () => {
 
   const handleStartNewChat = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newChatPhone.trim()) return;
+    const phoneInput = newChatPhone.trim();
+    if (!phoneInput) return;
+
+    const digitsOnly = phoneInput.replace(/[^0-9]/g, "");
+    if (digitsOnly.length < 5) {
+      alert("Nomor telepon tidak valid! Harap masukkan nomor HP WhatsApp berupa angka (contoh: 081298765432 atau 6281298765432).");
+      return;
+    }
 
     setIsCreatingChat(true);
     try {
@@ -209,17 +274,52 @@ export const InboxPage: React.FC = () => {
           )}
         </div>
 
+        {bridgeStatus?.is_syncing_history && (
+          <div className="p-3 bg-teal-500/10 border-b border-teal-500/20 text-teal-700 dark:text-teal-300 text-[11px] font-bold flex items-center gap-2 animate-pulse">
+            <RefreshCw className="h-4 w-4 animate-spin text-teal-500 shrink-0" />
+            <div className="min-w-0">
+              <p className="truncate">Mengimpor riwayat chat WhatsApp...</p>
+              <p className="text-[10px] opacity-80">{bridgeStatus.synced_count || 0} pesan terimpor</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800/50">
-          {convs.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400 dark:text-zinc-500 space-y-2">
-              <p>Belum ada percakapan masuk.</p>
-              <button
-                onClick={() => setShowNewChatModal(true)}
-                className="px-3 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 rounded-xl font-bold inline-flex items-center gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Mulai Chat Baru</span>
-              </button>
+          {isLoadingConvs ? (
+            <div className="p-4 space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-zinc-800 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 bg-slate-200 dark:bg-zinc-800 rounded w-3/4" />
+                    <div className="h-2.5 bg-slate-100 dark:bg-zinc-800/60 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : convs.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400 dark:text-zinc-500 space-y-3">
+              <div className="h-12 w-12 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto">
+                <MessageSquare className="h-6 w-6 animate-pulse" />
+              </div>
+              <div>
+                <p className="font-extrabold text-slate-700 dark:text-zinc-300 text-sm">Belum ada percakapan masuk</p>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">
+                  {bridgeStatus?.is_syncing_history
+                    ? `⚡ Sedang menyinkronkan riwayat chat dari WhatsApp... (${bridgeStatus.synced_count || 0} pesan terimpor)`
+                    : "Silakan kirim pesan baru atau scan QR WhatsApp untuk mengimpor histori obrolan."}
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowNewChatModal(true)}
+                  className="w-full py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Mulai Chat Baru</span>
+                </button>
+              </div>
             </div>
           ) : (
             convs.map((conv) => {
@@ -238,15 +338,33 @@ export const InboxPage: React.FC = () => {
                     onClick={() => setSelectedConvId(conv.id)}
                     className="flex items-start gap-3 flex-1 min-w-0 text-left"
                   >
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-teal-600 to-indigo-600 flex items-center justify-center font-bold text-white shrink-0">
-                      {customerName.slice(0, 2).toUpperCase()}
-                    </div>
+                    {conv.lead?.avatar_url ? (
+                      <img
+                        src={conv.lead.avatar_url}
+                        alt={customerName}
+                        className="h-10 w-10 rounded-full object-cover shrink-0 border border-slate-200 dark:border-zinc-700 shadow-sm"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-teal-600 to-indigo-600 flex items-center justify-center font-bold text-white shrink-0">
+                        {customerName.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold truncate text-slate-900 dark:text-zinc-100">{customerName}</p>
-                        <span className="text-[10px] text-slate-400 dark:text-zinc-500">
-                          {new Date(conv.last_message_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {conv.unread_count && conv.unread_count > 0 ? (
+                            <span className="h-4.5 min-w-[1.125rem] px-1 rounded-full bg-emerald-500 text-white text-[9px] font-extrabold flex items-center justify-center shadow-sm animate-pulse">
+                              {conv.unread_count}
+                            </span>
+                          ) : null}
+                          <span className="text-[10px] text-slate-400 dark:text-zinc-500">
+                            {new Date(conv.last_message_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">{formatPhoneNumber(conv.lead?.phone_number)}</p>
                       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -277,9 +395,20 @@ export const InboxPage: React.FC = () => {
         <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950">
           <div className="min-h-16 py-2 px-3 sm:px-5 border-b border-slate-200 dark:border-zinc-800/80 flex items-center justify-between gap-2 bg-slate-50/80 dark:bg-zinc-900/50 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-sm">
-                {activeConv.lead?.customer_name?.slice(0, 2).toUpperCase() || "WA"}
-              </div>
+              {liveAvatar || activeConv.lead?.avatar_url ? (
+                <img
+                  src={liveAvatar || activeConv.lead?.avatar_url}
+                  alt={activeConv.lead?.customer_name || "WA"}
+                  className="h-9 w-9 rounded-full object-cover shrink-0 border border-emerald-500/50 shadow-sm"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-600 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-sm">
+                  {activeConv.lead?.customer_name?.slice(0, 2).toUpperCase() || "WA"}
+                </div>
+              )}
               <div className="min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-zinc-100 truncate leading-tight">{activeConv.lead?.customer_name || "WhatsApp Customer"}</h3>
@@ -419,9 +548,18 @@ export const InboxPage: React.FC = () => {
                         <p>{msg.content}</p>
                       </div>
                     )}
-                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-1 px-1">
-                      {new Date(msg.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
+                    <div className="flex items-center gap-1 mt-1 px-1 text-[10px] text-slate-400 dark:text-zinc-500">
+                      <span>{new Date(msg.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      {isOutbound && (
+                        msg.is_read || msg.status === "READ" ? (
+                          <CheckCheck className="h-3.5 w-3.5 text-sky-400 font-bold" title="Dibaca (Read)" />
+                        ) : msg.status === "DELIVERED" ? (
+                          <CheckCheck className="h-3.5 w-3.5 text-slate-400" title="Tersampaikan (Delivered)" />
+                        ) : (
+                          <Check className="h-3.5 w-3.5 text-slate-400" title="Terkirim (Sent)" />
+                        )
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -718,7 +856,7 @@ export const InboxPage: React.FC = () => {
                   className="px-5 py-2 bg-teal-500 hover:bg-teal-600 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 disabled:opacity-50 shadow-md shadow-teal-500/20"
                 >
                   <Send className="h-3.5 w-3.5" />
-                  <span>{isCreatingChat ? "Mengirim..." : "Kirim Pesan WABA"}</span>
+                  <span>{isCreatingChat ? "Mengirim..." : "Kirim Pesan WA"}</span>
                 </button>
               </div>
             </form>

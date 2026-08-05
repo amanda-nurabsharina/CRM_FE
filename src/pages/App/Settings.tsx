@@ -26,24 +26,18 @@ export const SettingsPage: React.FC = () => {
   const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
 
   const getCandidateUrls = () => {
-    const urls: string[] = [];
+    const urls: string[] = ["/wa-bridge/status"];
     if (import.meta.env.VITE_WA_BRIDGE_URL) {
       urls.push(`${import.meta.env.VITE_WA_BRIDGE_URL.replace(/\/$/, "")}/status`);
     }
     if (typeof window !== "undefined") {
       const h = window.location.hostname;
-      const protocol = window.location.protocol;
-      const cleanDomain = h.replace(/^(crm|app|dashboard)\./, "");
-      
-      urls.push(`${protocol}//wa-bridge.${cleanDomain}/status`);
-      urls.push(`${protocol}//wabridge.${cleanDomain}/status`);
-      urls.push(`${protocol}//wa.${cleanDomain}/status`);
-      urls.push(`${protocol}//wa-bridge.${h}/status`);
-    }
-    urls.push("/wa-bridge/status");
-    if (typeof window !== "undefined" && window.location.protocol !== "https:") {
-      urls.push(`http://${host}:3001/status`);
-      urls.push(`http://${host}:8001/status`);
+      urls.push(`http://${h}:3001/status`);
+      if (h !== "localhost" && h !== "127.0.0.1") {
+        const protocol = window.location.protocol;
+        const cleanDomain = h.replace(/^(crm|app|dashboard)\./, "");
+        urls.push(`${protocol}//wa-bridge.${cleanDomain}/status`);
+      }
     }
     return Array.from(new Set(urls));
   };

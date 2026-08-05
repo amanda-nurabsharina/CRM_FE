@@ -25,6 +25,7 @@ export interface Lead {
   id: string;
   customer_name: string;
   phone_number: string;
+  avatar_url?: string;
   domicile: string;
   source: string;
   status: string;
@@ -42,6 +43,7 @@ export interface Conversation {
   branch_id: string;
   status: string;
   last_message_at: string;
+  unread_count?: number;
 }
 
 export interface Message {
@@ -54,6 +56,7 @@ export interface Message {
   content: string;
   media_url?: string;
   status: string;
+  is_read?: boolean;
   sent_at: string;
 }
 
